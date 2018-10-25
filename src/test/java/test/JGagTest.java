@@ -4,6 +4,8 @@ import java.util.List;
 
 import at.neonartworks.jgagv2.core.JGag;
 import at.neonartworks.jgagv2.core.Post;
+import at.neonartworks.jgagv2.core.PostFrom;
+import at.neonartworks.jgagv2.core.PostGroup;
 
 public class JGagTest
 {
@@ -12,18 +14,18 @@ public class JGagTest
 	{
 		JGag jgag = new JGag();
 
-		boolean login = jgag.login("USERNAME", "CLIENT_SECRET");
+		boolean login = jgag.login("USERNAME", "USER_TOKEN");
 
 		if (login)
 		{
-
-			List<Post> posts = jgag.getPosts(1, "hot", 10);
-
-			for (Post p : posts)
+			List<Post> posts = jgag.getPosts(PostGroup.FUNNY, PostFrom.TRENDING, 10, 0);
+			if (posts != null && posts.size() >= 1)
 			{
-				System.out.println(p.getTitle() + " ;; " + p.getMediaURL());
+				for (Post p : posts)
+				{
+					System.out.println(p.toString());
+				}
 			}
-
 		}
 	}
 

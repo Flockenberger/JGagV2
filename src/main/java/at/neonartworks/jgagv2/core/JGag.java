@@ -13,11 +13,16 @@ import javax.json.JsonReader;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
 
 import at.neonartworks.jgagv2.util.APIPath;
 import at.neonartworks.jgagv2.util.AppID;
@@ -58,7 +63,7 @@ public class JGag
 
 		this.token = response.getJsonObject("data").getString("userToken");
 		// this.userData = response.getJsonString("data");
-		
+
 		return validateResponse(response);
 	}
 
@@ -71,29 +76,36 @@ public class JGag
 			return false;
 	}
 
-	public List<Post> getPosts(int group, String type, int count)
+	public List<Post> getPosts(PostGroup group, PostFrom type, int count, int offset)
 	{
 
 		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
-		arg.add(new Argument<String, String>("group", String.valueOf(group)));
-		arg.add(new Argument<String, String>("type", type));
-		arg.add(new Argument<String, String>("itemCount", "9gag"));
+		arg.add(new Argument<String, String>("group", String.valueOf(group.getId())));
+		arg.add(new Argument<String, String>("type", type.getFrom()));
+		arg.add(new Argument<String, String>("itemCount", String.valueOf(count)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
-		arg.add(new Argument<String, String>("offset", String.valueOf(10)));
+		arg.add(new Argument<String, String>("offset", String.valueOf(offset)));
 
 		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null, null);
-		List<Post> retPosts = new ArrayList<Post>();
-
-		JsonArray posts = response.getJsonObject("data").getJsonArray("posts");
-		for (int i = 0; i < posts.size(); i++)
+		if (validateResponse(response))
 		{
-			retPosts.add(new Post(posts.getJsonObject(i)));
-		}
+			List<Post> retPosts = new ArrayList<Post>();
 
-		return retPosts;
+			JsonArray posts = response.getJsonObject("data").getJsonArray("posts");
+			if (posts != null)
+				for (int i = 0; i < posts.size(); i++)
+				{
+					retPosts.add(new Post(this, posts.getJsonObject(i)));
+				}
+
+			return retPosts;
+		} else
+		{
+			return null;
+		}
 	}
 
-	private JsonObject makeRequest(RESTType method, APIPath path, Services service, List<Argument<String, String>> args,
+	public JsonObject makeRequest(RESTType method, APIPath path, Services service, List<Argument<String, String>> args,
 			List<Argument<String, String>> params, List<String> body)
 	{
 
@@ -113,22 +125,35 @@ public class JGag
 		hheaders.add(new BasicHeader(HeaderType.GAG_REQUEST_SIGNATURE.getHeader(),
 				JGagUtil.sign(timestamp, this.app_id, this.device_uuid)));
 
-		HttpGet get = new HttpGet();
+		HttpGet get = new HttpGet(url);
+
 		HttpResponse response = null;
 
+		URIBuilder builder = new URIBuilder(get.getURI());
+		List<NameValuePair> parameterList = new ArrayList<NameValuePair>();
+		if (params != null)
+		{
+			for (Argument<String, String> p : params)
+			{
+
+				parameterList.add(new BasicNameValuePair(p.a, p.b));
+			}
+			builder.addParameters(parameterList);
+			try
+			{
+				get.setURI(builder.build());
+			} catch (URISyntaxException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		Header[] headers = new Header[hheaders.size()];
 		hheaders.toArray(headers);
 		get.setHeaders(headers);
 
 		client = HttpClientBuilder.create().build();
-		try
-		{
-			get.setURI(new URI(url));
-		} catch (URISyntaxException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 		try
 		{
 			response = client.execute(get);
