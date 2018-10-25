@@ -29,26 +29,24 @@ This Java library is a port of [this](https://github.com/and3rson/nineapi)  pyth
 
 ```java
 public static void main(String[] args)
-	{
-		JGag jgag = new JGag(); //create a new JGag instance
-		
-		//login to 9GAG with your credentials
-		boolean login = jgag.login("USERNAME", "USER_TOKEN");
+{
+	JGag jgag = new JGag(); //create a new JGag instance
 
-		if (login)
+	//login to 9GAG with your credentials
+	boolean login = jgag.login("USERNAME", "USER_TOKEN");
+
+	if (login)
+	{
+		//grab Posts
+		List<Post> posts = jgag.getPosts(PostGroup.FUNNY, PostFrom.TRENDING, 10, 0);
+		//getPosts returns null if no posts where found or if an error occurred!
+		if (posts != null && posts.size() >= 1)
 		{
-			//grab Posts
-			List<Post> posts = jgag.getPosts(PostGroup.FUNNY, PostFrom.TRENDING, 10, 0);
-			
-			//getPosts returns null if no posts where found or if an error occurred!
-			
-			if (posts != null && posts.size() >= 1)
+			for (Post p : posts)
 			{
-				for (Post p : posts)
-				{
-					System.out.println(p.toString());
-				}
+				System.out.println(p.toString());
 			}
 		}
 	}
+}
 ```
