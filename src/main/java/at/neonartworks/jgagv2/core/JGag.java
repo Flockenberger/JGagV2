@@ -1,8 +1,9 @@
 package at.neonartworks.jgagv2.core;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,15 +15,17 @@ import javax.json.JsonReader;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
 
 import at.neonartworks.jgagv2.util.APIPath;
 import at.neonartworks.jgagv2.util.AppID;
@@ -77,7 +80,7 @@ public class JGag
 		arg.add(new Argument<String, String>("loginName", ua));
 		arg.add(new Argument<String, String>("language", LANG));
 
-		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null, null);
+		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null);
 		boolean succ = validateResponse(response);
 		if (succ)
 			this.token = response.getJsonObject("data").getString("userToken");
@@ -118,8 +121,8 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(count)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("offset", String.valueOf(offset)));
-		
-		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null, null);
+
+		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null);
 		if (validateResponse(response))
 		{
 			List<Post> retPosts = new ArrayList<Post>();
@@ -138,6 +141,32 @@ public class JGag
 		}
 	}
 
+	// posting stuff to 9gag research
+	// post_tags
+	// upload_type 2 = gif, 5 =mp4, else jpg!
+	// source
+	// upload_id
+	// progress
+	// section
+	// submit_ts System.currentTimeMillis()
+	// title
+	// public static final int IMAGE_TYPE_GIF = 2;
+	// public static final int IMAGE_TYPE_JPG = 1;
+	// public static final int IMAGE_TYPE_MP4 = 5;
+	// public static final int IMAGE_TYPE_RAW = 4;
+	public boolean uploadImage(String caption, ImageType imgType, PostSection section, List<Tag> tags,
+			BufferedImage image)
+	{
+
+		return true;
+	}
+
+	public boolean uploadYoutubeVideo(String caption, ImageType imgType, PostSection section, List<Tag> tags,
+			URL youtubeURL)
+	{
+		return true;
+	}
+
 	/**
 	 * Originally an internal method used to make direct queries/requests to the
 	 * 9gag servers.
@@ -147,11 +176,10 @@ public class JGag
 	 * @param service api service of 9gag
 	 * @param args    arguments to send with the query
 	 * @param params  parameters to send with the query
-	 * @param body    currently never used
 	 * @return returns an {@link JsonObject} containing the response
 	 */
 	public JsonObject makeRequest(RESTType method, APIPath path, Services service, List<Argument<String, String>> args,
-			List<Argument<String, String>> params, List<String> body)
+			List<Argument<String, String>> params)
 	{
 
 		String url = formatURL(service, path, args);
@@ -171,7 +199,7 @@ public class JGag
 				JGagUtil.sign(timestamp, this.app_id, this.device_uuid)));
 
 		HttpGet get = new HttpGet(url);
-
+		HttpPost post = new HttpPost(url);
 		HttpResponse response = null;
 
 		URIBuilder builder = new URIBuilder(get.getURI());
@@ -186,7 +214,10 @@ public class JGag
 			builder.addParameters(parameterList);
 			try
 			{
-				get.setURI(builder.build());
+				if (method.equals(RESTType.GET))
+					get.setURI(builder.build());
+				else
+					post.setURI(builder.build());
 			} catch (URISyntaxException e)
 			{
 				// TODO Auto-generated catch block
@@ -196,12 +227,15 @@ public class JGag
 		Header[] headers = new Header[hheaders.size()];
 		hheaders.toArray(headers);
 		get.setHeaders(headers);
-
+		post.setHeaders(headers);
 		client = HttpClientBuilder.create().build();
 
 		try
 		{
-			response = client.execute(get);
+			if (method.equals(RESTType.GET))
+				response = client.execute(get);
+			else
+				response = client.execute(post);
 		} catch (ClientProtocolException e)
 		{
 			// TODO Auto-generated catch block
@@ -226,16 +260,20 @@ public class JGag
 			e.printStackTrace();
 		}
 		JsonObject object = jsonReader.readObject();
+		
+		
+		
 		return object;
 	}
 
 	private String formatURL(Services service, APIPath path, List<Argument<String, String>> args)
 	{
 		StringBuilder sb = new StringBuilder();
-		for (Argument<String, String> arg : args)
-		{
-			sb.append("/" + arg.a + "/" + arg.b);
-		}
+		if (args != null)
+			for (Argument<String, String> arg : args)
+			{
+				sb.append("/" + arg.a + "/" + arg.b);
+			}
 		String url = service.getService() + path.getPath() + sb.toString();
 		return url;
 	}
