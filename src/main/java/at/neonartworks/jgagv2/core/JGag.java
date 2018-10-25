@@ -33,6 +33,14 @@ import at.neonartworks.jgagv2.util.JGagUtil;
 import at.neonartworks.jgagv2.util.RESTType;
 import at.neonartworks.jgagv2.util.Services;
 
+/**
+ * JGAG.
+ * 
+ * This class is the base of the Java library.
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class JGag
 {
 
@@ -50,6 +58,16 @@ public class JGag
 		this.device_uuid = JGagUtil.getRandomUUID();
 	}
 
+	/**
+	 * Tries to log into the 9gag account associated with the given username and
+	 * password. This method returns true if the login attempt was successful and
+	 * otherwise false.
+	 * 
+	 * @param ua your 9gag username
+	 * @param pw your 9gag password
+	 * @return true or false depending whether the login attempt was successful or
+	 *         not
+	 */
 	public boolean login(String ua, String pw)
 	{
 		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
@@ -62,7 +80,6 @@ public class JGag
 		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null, null);
 
 		this.token = response.getJsonObject("data").getString("userToken");
-		// this.userData = response.getJsonString("data");
 
 		return validateResponse(response);
 	}
@@ -76,7 +93,19 @@ public class JGag
 			return false;
 	}
 
-	public List<Post> getPosts(PostGroup group, PostFrom type, int count, int offset)
+	/**
+	 * This method returns a {@link List} of {@link Post}s containing all fetched
+	 * posts. If there was an error or an invalid response, this method will return
+	 * null in such case.
+	 * 
+	 * @param group  the Section you want to fetch posts from
+	 * @param type   from where you want to grab the posts form, HOT, TRENDING or
+	 *               FRESH
+	 * @param count  the amount of posts you want to fetch
+	 * @param offset the offset of how many posts to ignore before fetching
+	 * @return a List filled with posts or null
+	 */
+	public List<Post> getPosts(PostSection group, PostFrom type, int count, int offset)
 	{
 
 		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
@@ -105,6 +134,18 @@ public class JGag
 		}
 	}
 
+	/**
+	 * Originally an internal method used to make direct queries/requests to the
+	 * 9gag servers.
+	 * 
+	 * @param method  the method of the request (GET or POST)
+	 * @param path    the "path"-> API location
+	 * @param service api service of 9gag
+	 * @param args    arguments to send with the query
+	 * @param params  parameters to send with the query
+	 * @param body    currently never used
+	 * @return returns an {@link JsonObject} containing the response
+	 */
 	public JsonObject makeRequest(RESTType method, APIPath path, Services service, List<Argument<String, String>> args,
 			List<Argument<String, String>> params, List<String> body)
 	{

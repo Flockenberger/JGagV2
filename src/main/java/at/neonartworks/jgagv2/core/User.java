@@ -1,5 +1,12 @@
 package at.neonartworks.jgagv2.core;
 
+/**
+ * User. This class holds information of a user. THis class is primarily used
+ * for the {@link Comment} class.
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class User
 {
 
@@ -25,36 +32,71 @@ public class User
 		this.profileURL = USER_URL + this.displayName;
 	}
 
+	/**
+	 * Returns the user id.
+	 * 
+	 * @return the user id
+	 */
 	public String getUserID()
 	{
 		return userID;
 	}
 
+	/**
+	 * Returns the user avatar url.
+	 * 
+	 * @return the avatar url
+	 */
 	public String getAvatarURL()
 	{
 		return avatarURL;
 	}
 
+	/**
+	 * Returns the DisplayName of the user.
+	 * 
+	 * @return the display name of the user
+	 */
 	public String getDisplayName()
 	{
 		return displayName;
 	}
 
+	/**
+	 * Returns the emoji status of the user.
+	 * 
+	 * @return the emoji status
+	 */
 	public String getEmojiStatus()
 	{
 		return emojiStatus;
 	}
 
+	/**
+	 * Returns the account id of the user.
+	 * 
+	 * @return the account id
+	 */
 	public String getAccountID()
 	{
 		return accountID;
 	}
 
+	/**
+	 * Returns the hashed account id of the user.
+	 * 
+	 * @return the hashed account id
+	 */
 	public String getHashedAccountID()
 	{
 		return hashedAccountID;
 	}
 
+	/**
+	 * Returns the profile url of the user.
+	 * 
+	 * @return the profile url
+	 */
 	public String getProfileURL()
 	{
 		return profileURL;

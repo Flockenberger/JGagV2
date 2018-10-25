@@ -9,6 +9,12 @@ import javax.json.JsonArray;
 
 import javax.json.JsonValue;
 
+/**
+ * Comment. Holds a comment and it's children (response comments).
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class Comment
 {
 	private String commentID;
@@ -75,26 +81,53 @@ public class Comment
 		}
 	}
 
+	/**
+	 * Returns the comment id
+	 * 
+	 * @return comment id
+	 */
 	public String getCommentID()
 	{
 		return commentID;
 	}
 
+	/**
+	 * Returns the comment text, this can also be a URL (image/gif) check
+	 * {@link #isURL}
+	 * 
+	 * @return the content of the comment
+	 */
 	public String getText()
 	{
 		return text;
 	}
 
+	/**
+	 * Gets the id of the parent comment.
+	 * 
+	 * @return parent id
+	 */
 	public String getParentID()
 	{
 		return parentID;
 	}
 
+	/**
+	 * Returns the permalink of this comment.
+	 * 
+	 * @return permalink of the comment.
+	 */
 	public String getPermalink()
 	{
 		return permalink;
 	}
 
+	/**
+	 * Returns all children of the comment. Children are all sub/response comments
+	 * which are typically underneath.
+	 * 
+	 * @return the comment children
+	 */
 	public List<Comment> getChildren()
 	{
 		return children;

@@ -1,6 +1,5 @@
 package at.neonartworks.jgagv2.core;
 
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +12,12 @@ import at.neonartworks.jgagv2.util.Argument;
 import at.neonartworks.jgagv2.util.RESTType;
 import at.neonartworks.jgagv2.util.Services;
 
+/**
+ * Post. Holds every necessary data from a 9GAG post, including comments.
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class Post
 {
 
@@ -43,6 +48,7 @@ public class Post
 
 	private void init(JsonObject obj)
 	{
+		// System.out.println(obj);
 		this.id = obj.getString("id");
 		this.title = obj.getString("title");
 		this.url = obj.getString("url");
@@ -82,6 +88,12 @@ public class Post
 		this.comments = getComments(this.url);
 	}
 
+	/**
+	 * Returns the top-level comments of the Post. Every response comment can be
+	 * retrieved with the {@link Comment#getChildren()} method.
+	 * 
+	 * @return all top-level comments.
+	 */
 	public List<Comment> getComments()
 	{
 		return comments;
@@ -103,13 +115,13 @@ public class Post
 
 		// top_comment.add()
 		// System.out.println(response.toString());
-		//System.out.println(response);
+		// System.out.println(response);
 		JsonArray commentsArray = response.getJsonObject("payload").getJsonArray("data").getJsonObject(0)
 				.getJsonArray("comments");
 		for (int i = 0; i < commentsArray.size(); i++)
 		{
 			JsonObject cmt = commentsArray.getJsonObject(i);
-		//	System.out.println(cmt);
+			// System.out.println(cmt);
 			String commentID = cmt.getString("commentId");
 			String text = cmt.getString("text");
 			String parentID = cmt.getString("parent");
@@ -142,10 +154,10 @@ public class Post
 
 	private String fetchMediaURL()
 	{
-		if (this.type.equals("Photo"))
+		if (this.type.equalsIgnoreCase(PostType.PHOTO.getType()))
 		{
 			return this.json.getJsonObject("images").getJsonObject("image700").getString("url");
-		} else if (this.type.equals("Animated"))
+		} else if (this.type.equalsIgnoreCase(PostType.ANIMATED.getType()))
 			return this.json.getJsonObject("images").getJsonObject("image460sv").getString("url");
 		return "NULL";
 	}
@@ -159,86 +171,154 @@ public class Post
 				+ ", section=" + section + ", tags=" + tags + "]";
 	}
 
+	/**
+	 * The id of the post.
+	 * 
+	 * @return the id of the post.
+	 */
 	public String getId()
 	{
 		return id;
 	}
 
+	/**
+	 * The title /caption of the post.
+	 * 
+	 * @return the title of the post
+	 */
 	public String getTitle()
 	{
 		return title;
 	}
 
+	/**
+	 * The url of this post.
+	 * 
+	 * @return the url of this post
+	 */
 	public String getUrl()
 	{
 		return url;
 	}
 
+	/**
+	 * The type of the post.
+	 * 
+	 * @return
+	 */
 	public String getType()
 	{
 		return type;
 	}
 
+	/**
+	 * The media url of this post. The media url is the url which directly links to
+	 * either the posts image of video(gif).
+	 * 
+	 * @return the media url
+	 */
 	public String getMediaURL()
 	{
 		return mediaURL;
 	}
 
+	/**
+	 * Whether this post is tagged as Not Safe For Work or not.
+	 * 
+	 * @return true if this is a nfsw post otherwise false
+	 */
 	public boolean isNsfw()
 	{
 		return nsfw;
 	}
 
+	/**
+	 * Gets the amount of upvotes.
+	 * 
+	 * @return the upvotes of the post
+	 */
 	public int getUpvotes()
 	{
 		return upvotes;
 	}
 
+	/**
+	 * Gets the amount of downvotes.
+	 * 
+	 * @return the downvotes of the post
+	 */
 	public int getDownvotes()
 	{
 		return downvotes;
 	}
 
+	/**
+	 * The total votes of the post. Upvotes-Downvotes
+	 * 
+	 * @return the total amount of votes
+	 */
 	public int getTotalVotes()
 	{
 		return totalVotes;
 	}
 
+	/**
+	 * Checks whether this post is a promoted one or not.
+	 *
+	 * @return whether this post is promoted or not
+	 */
 	public boolean isPromotedPost()
 	{
 		return promotedPost;
 	}
 
+	/**
+	 * Gets the amount of comments.
+	 * 
+	 * @return the amount of comments
+	 */
 	public int getCommentsCount()
 	{
 		return commentsCount;
 	}
 
+	/**
+	 * The order id of this post.
+	 * 
+	 * @return order id of this post
+	 */
 	public int getOrderID()
 	{
 		return orderID;
 	}
 
+	/**
+	 * The {@link Section} of this post.
+	 * 
+	 * @return the {@link Section}
+	 */
 	public Section getSection()
 	{
 		return section;
 	}
 
+	/**
+	 * Returns a list containing all {@link Tag}s of the post
+	 * 
+	 * @return the tags of the post
+	 */
 	public List<Tag> getTags()
 	{
 		return tags;
 	}
 
+	/**
+	 * The raw JSON object from the query.
+	 * 
+	 * @return the raw JSON object.
+	 */
 	public JsonObject getJson()
 	{
 		return json;
-	}
-
-	private String millisToDate(long millis)
-	{
-
-		return DateFormat.getDateInstance(DateFormat.SHORT).format(millis);
-		// You can use DateFormat.LONG instead of SHORT
-
 	}
 }

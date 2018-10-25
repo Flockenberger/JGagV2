@@ -1,5 +1,12 @@
 package at.neonartworks.jgagv2.core;
 
+/**
+ * Section. Holds information of a section.
+ * 
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class Section
 {
 
@@ -15,34 +22,34 @@ public class Section
 		this.imageURL = imageURL;
 	}
 
+	/**
+	 * Returns the name of the section.
+	 * 
+	 * @return the section name
+	 */
 	public String getName()
 	{
 		return name;
 	}
 
-	public void setName(String name)
-	{
-		this.name = name;
-	}
-
+	/**
+	 * Returns the url of the section.
+	 * 
+	 * @return the url of the section
+	 */
 	public String getUrl()
 	{
 		return url;
 	}
 
-	public void setUrl(String url)
-	{
-		this.url = url;
-	}
-
+	/**
+	 * Returns the image-url of the section image.
+	 * 
+	 * @return the image-url of the section image
+	 */
 	public String getImageURL()
 	{
 		return imageURL;
-	}
-
-	public void setImageURL(String imageURL)
-	{
-		this.imageURL = imageURL;
 	}
 
 	@Override

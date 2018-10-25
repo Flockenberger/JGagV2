@@ -1,5 +1,11 @@
 package at.neonartworks.jgagv2.core;
 
+/**
+ * Tag. Holds information of a Tag.
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class Tag
 {
 
@@ -13,11 +19,21 @@ public class Tag
 		this.url = url;
 	}
 
+	/**
+	 * Return the tags name.
+	 * 
+	 * @return the tags name
+	 */
 	public String getName()
 	{
 		return name;
 	}
 
+	/**
+	 * Returns the tags url.
+	 * 
+	 * @return the tag url
+	 */
 	public String getUrl()
 	{
 		return url;

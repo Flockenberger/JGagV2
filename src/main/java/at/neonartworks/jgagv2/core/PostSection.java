@@ -1,6 +1,14 @@
 package at.neonartworks.jgagv2.core;
 
-public enum PostGroup
+/**
+ * 
+ * PostSection. Helper-Enum. 9GAG uses int ids to distinguish between sections.
+ *
+ * 
+ * @author Florian Wagner
+ *
+ */
+public enum PostSection
 {
 
 	FUNNY("Funny", 1), ANIMALS("Animals", 3), WTF("WTF", 4), GAMING("Gaming", 5), AWESOME("Awesome", 7),
@@ -21,7 +29,7 @@ public enum PostGroup
 	private String name;
 	private int id;
 
-	PostGroup(String name, int id)
+	PostSection(String name, int id)
 	{
 		this.name = name;
 		this.id = id;

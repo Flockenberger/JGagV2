@@ -1,5 +1,11 @@
 package at.neonartworks.jgagv2.core;
 
+/**
+ * PostFrom. Helper-Enum for distinguishing from where to fetch the posts from.
+ * 
+ * @author Florian Wagner
+ *
+ */
 public enum PostFrom
 {
 
