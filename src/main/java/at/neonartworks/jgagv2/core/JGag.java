@@ -78,10 +78,14 @@ public class JGag
 		arg.add(new Argument<String, String>("language", LANG));
 
 		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null, null);
-
-		this.token = response.getJsonObject("data").getString("userToken");
-
-		return validateResponse(response);
+		boolean succ = validateResponse(response);
+		if (succ)
+			this.token = response.getJsonObject("data").getString("userToken");
+		if (!succ)
+		{
+			System.err.println("Error while login-attempt! Are your credentials correct?");
+		}
+		return succ;
 	}
 
 	private boolean validateResponse(JsonObject obj)
@@ -114,7 +118,7 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(count)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("offset", String.valueOf(offset)));
-
+		
 		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null, null);
 		if (validateResponse(response))
 		{
