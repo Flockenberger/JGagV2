@@ -2,9 +2,9 @@
 
 This project is an unofficial Java 9GAG api
 
-It uses 9gag's api
+It uses 9gag's api.
 
-This Java library is a port of [this](https://github.com/and3rson/nineapi)  python client library by [and3rson](https://github.com/and3rson)
+This Java library is a port and extension of [this](https://github.com/and3rson/nineapi)  python client library by [and3rson](https://github.com/and3rson)
 
  ## Features
  ► Retrieve posts from every section.
