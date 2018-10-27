@@ -36,8 +36,8 @@ public static void main(String[] args)
 		List<Post> posts = jgag.getPosts(PostGroup.FUNNY, PostFrom.TRENDING, 10);
 		
 		//of search for tags/strings
-		QueryResult result = jgag.searchPosts("Gandalf", 10, SortBy.ASCENDING);
-		//a QueryResult has all found Posts, and related Tags for the search
+		SearchResult result = jgag.searchPosts("Gandalf", 10, SortBy.ASCENDING);
+		//a SearchResult has all found Posts, and related Tags for the search
 		
 		//getPosts returns an empty List if no posts where found or null if an error occurred!
 		if (posts != null && posts.size() >= 1)
