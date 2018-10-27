@@ -74,3 +74,4 @@ post-list/userId/{userId}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTyp
 tags ->type String url-info ->urls String user-info
 ```
 
+9GAG does user GSON internally, so their responses etc. are Object based. Why didn't I do it this way? I only noticed this after I was halfway done with writing all my code. I will probably change my stuff to be GSON based. So it mirrors the 9GAG api better.
