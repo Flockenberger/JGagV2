@@ -155,7 +155,7 @@ public class Post
 		params.add(new Argument<String, String>("pretty", String.valueOf(1)));
 
 		JsonObject response = api.makeRequest(RESTType.GET, APIPath.TOP_COMMENTS, Services.COMMENT_CDN,
-				new ArrayList<Argument<String, String>>(), params);
+				new ArrayList<Argument<String, String>>(), params, null);
 
 		// top_comment.add()
 		// System.out.println(response.toString());

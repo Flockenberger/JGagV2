@@ -1,28 +1,44 @@
 package at.neonartworks.jgagv2.core;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 
 import at.neonartworks.jgagv2.api.APIPath;
 import at.neonartworks.jgagv2.api.APIuser;
@@ -107,7 +123,7 @@ public class JGag
 		arg.add(new Argument<String, String>("loginName", ua));
 		arg.add(new Argument<String, String>("language", LANG));
 
-		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null);
+		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null, null);
 		// System.out.println(response);
 		this.loggedInUser = getUserfromLoginResponse(response.getJsonObject("data").getJsonObject("user"));
 
@@ -140,7 +156,7 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(itemCount)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
-		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
+		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg, null);
 		SearchResult result;
 		if (validateResponse(response))
 		{
@@ -174,21 +190,92 @@ public class JGag
 		}
 	}
 
-	public void upload()
+	/**
+	 * IN THE WORKS~~
+	 */
+	protected void upload()
 	{
-		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
-		arg.add(new Argument<String, String>("uploadId",
-				getLoggedInUser().getAccountId() + "_" + System.currentTimeMillis()));
-		arg.add(new Argument<String, String>("media_type", "5"));
-		arg.add(new Argument<String, String>("upload_type", "5"));
-		//arg.add(new Argument<String, String>("step_type", "1"));
-		arg.add(new Argument<String, String>("media_meta", "1"));
-		arg.add(new Argument<String, String>("group_id", String.valueOf(PostSection.FUNNY.getId())));
-		arg.add(new Argument<String, String>("source", "https://www.youtube.com/watch?v=owu2oWX46Z0"));
-		arg.add(new Argument<String, String>("urlMedia", "https://www.youtube.com/watch?v=owu2oWX46Z0"));
+		File file = new File("S:\\_2_images\\9GAG\\Asking-the-real-question.jpg");
 
-		JsonObject response = makeRequest(RESTType.POST, APIPath.POST_SUBMIT, Services.API, null, arg);
+		File compressedImageFile = new File("compressed_image.jpg");
+		OutputStream os = null;
+		BufferedImage image = null;
+		try
+		{
+			os = new FileOutputStream(compressedImageFile);
+			image = ImageIO.read(file);
+		} catch (IOException e1)
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+		ImageWriter writer = (ImageWriter) writers.next();
+
+		ImageOutputStream ios = null;
+		try
+		{
+			ios = ImageIO.createImageOutputStream(os);
+		} catch (IOException e2)
+		{
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+		writer.setOutput(ios);
+
+		ImageWriteParam param = writer.getDefaultWriteParam();
+
+		List<Argument<String, String>> metaArgs = new ArrayList<Argument<String, String>>();
+		List<Argument<String, String>> uploadArgs = new ArrayList<Argument<String, String>>();
+		int isNSFW = 0;
+		String title = "HereCouldBeSomething";
+		Calendar cl = Calendar.getInstance();
+		String uploadId = getLoggedInUser().getAccountId() + "_" + (cl.getTimeInMillis() / 1000l);
+
+		metaArgs.add(new Argument<String, String>("uploadId", uploadId));
+		metaArgs.add(new Argument<String, String>("isNSFW", String.valueOf(isNSFW)));
+		metaArgs.add(new Argument<String, String>("step", "metaData"));
+		metaArgs.add(new Argument<String, String>("section", PostSection.FUNNY.getName().toLowerCase()));
+		metaArgs.add(new Argument<String, String>("title", title));
+		metaArgs.add(new Argument<String, String>("tags", "test1,test2,stest3"));
+
+		uploadArgs.add(new Argument<String, String>("uploadId", uploadId));
+		uploadArgs.add(new Argument<String, String>("step", "imageData"));
+
+		param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+		param.setCompressionQuality(0.05f); // Change the quality value you prefer
+		try
+		{
+			writer.write(null, new IIOImage(image, null, null), param);
+		} catch (IOException e1)
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		try
+		{
+			os.close();
+			ios.close();
+			writer.dispose();
+		} catch (IOException e1)
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		// new ("", new FileBody(file))
+		FileBody fileBody = new FileBody(compressedImageFile, ContentType.IMAGE_JPEG);
+		HttpEntity mpEntity = MultipartEntityBuilder.create().addPart("imageData", fileBody).build();
+
+		JsonObject response = makeRequest(RESTType.POST, APIPath.POST_SUBMIT, Services.API, null, uploadArgs, mpEntity);
 		System.out.println(response);
+
+		response = makeRequest(RESTType.POST, APIPath.POST_SUBMIT, Services.API, null, metaArgs, null);
+
+		System.out.println(response);
+
 	}
 
 	/**
@@ -209,7 +296,7 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(itemCount)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
-		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
+		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg, null);
 		SearchResult result;
 
 		if (validateResponse(response))
@@ -287,8 +374,8 @@ public class JGag
 		String hideUpvote = user.getString(APIuser.HIDEUPVOTE.getString());
 		// String permissions = user.getString(APIuser.PERMISSIONS.getString());
 
-		LoggedInUser u = new LoggedInUser(userId, accountId, loginName, fullName, emojiStatus, email, profileColor, hasPassword,
-				fbUserId, fbDisplayName, gplusUserId, gplusAccountName, canPostToFB, fbPublish, fbTimeline,
+		LoggedInUser u = new LoggedInUser(userId, accountId, loginName, fullName, emojiStatus, email, profileColor,
+				hasPassword, fbUserId, fbDisplayName, gplusUserId, gplusAccountName, canPostToFB, fbPublish, fbTimeline,
 				fbLikeAction, fbCreateAction, fbCommentAction, safeMode, about, lang, location, timezoneGmtOffset,
 				website, profileUrl, avatarUrlMedium, avatarUrlSmall, avatarUrlTiny, avatarUrlLarge, gender, birthday,
 				hideUpvote);
@@ -334,7 +421,7 @@ public class JGag
 		if (this.olderThan != null)
 			arg.add(new Argument<String, String>("olderThan", String.valueOf(this.olderThan)));
 
-		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null);
+		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null, null);
 		if (validateResponse(response))
 		{
 			List<Post> retPosts = new ArrayList<Post>();
@@ -367,7 +454,7 @@ public class JGag
 	 * @return returns an {@link JsonObject} containing the response
 	 */
 	public JsonObject makeRequest(RESTType method, APIPath path, Services service, List<Argument<String, String>> args,
-			List<Argument<String, String>> params)
+			List<Argument<String, String>> params, HttpEntity ent)
 	{
 
 		String url = formatURL(service, path, args);
@@ -416,6 +503,11 @@ public class JGag
 		hheaders.toArray(headers);
 		get.setHeaders(headers);
 		post.setHeaders(headers);
+		if (ent != null)
+		{
+			post.setEntity(ent);
+
+		}
 		client = HttpClientBuilder.create().build();
 
 		try
