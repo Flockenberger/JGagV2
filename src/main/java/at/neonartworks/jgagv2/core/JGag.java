@@ -15,7 +15,6 @@ import javax.json.JsonReader;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -24,8 +23,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.util.EntityUtils;
 
 import at.neonartworks.jgagv2.util.APIPath;
 import at.neonartworks.jgagv2.util.AppID;
@@ -35,6 +32,7 @@ import at.neonartworks.jgagv2.util.HeaderType;
 import at.neonartworks.jgagv2.util.JGagUtil;
 import at.neonartworks.jgagv2.util.RESTType;
 import at.neonartworks.jgagv2.util.Services;
+import at.neonartworks.jgagv2.util.SortBy;
 
 /**
  * JGAG.
@@ -46,13 +44,32 @@ import at.neonartworks.jgagv2.util.Services;
  */
 public class JGag
 {
-
+	/**
+	 * ApiService Requests... POST post-submit/step/articleData
+	 * post-submit/step/createMedia ->uploadID RequestBody, MultipartBody
+	 * post-submit/step/createMedia ->uploadID RequestBody, urlMedia RequestBody
+	 * 
+	 * GET group-list ->entryTypes String, locale String,
+	 * user-notifications/locale/{locale} ->locale String, refKey String
+	 * post-list/group/{group}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}/olderThan/{olderThan}
+	 * post-list/group/{group}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}
+	 * post -> entryIds String entryTypes String
+	 * search/query/{query}/fromIndex/{fromIndex}/itemCount/{itemCount}/entryTypes/{entryTypes}/sortBy/{sortBy}
+	 * tag-search->query String, fromIndex String, itemCount String, entryTypes
+	 * String, sortBy String
+	 * post-list/userId/{userId}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}
+	 * post-list/userId/{userId}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}/olderThan/{olderThan}
+	 * tags ->type String url-info ->urls String user-info
+	 * 
+	 * 
+	 */
 	private String app_id;
 	private String token;
 	private String device_uuid;
 	private final String LANG = "en_US";
 	private CloseableHttpClient client;
 	private String olderThan;
+	private User loggedInUser;
 
 	public JGag()
 	{
@@ -82,6 +99,9 @@ public class JGag
 		arg.add(new Argument<String, String>("language", LANG));
 
 		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null);
+
+		this.loggedInUser = getUserfromLoginResponse(response.getJsonObject("data").getJsonObject("user"));
+
 		boolean succ = validateResponse(response);
 		if (succ)
 			this.token = response.getJsonObject("data").getString("userToken");
@@ -90,6 +110,167 @@ public class JGag
 			System.err.println("Error while login-attempt! Are your credentials correct?");
 		}
 		return succ;
+	}
+
+	/**
+	 * Searches 9GAG for a specific query. I am not sure whether 9gag searches
+	 * through tags or the title string, maybe both. It returns a {@link List} of
+	 * {@link Post}s.
+	 * 
+	 * @param query     the query to search for
+	 * @param itemCount the amount of posts to fetch
+	 * @param sort      sort either by ascending or descending
+	 * @return the found posts or null in case of an error
+	 */
+	public QueryResult searchPosts(String query, int itemCount, SortBy sort)
+	{
+		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
+		arg.add(new Argument<String, String>("query", query));
+		arg.add(new Argument<String, String>("fromIndex", String.valueOf(0)));
+		arg.add(new Argument<String, String>("itemCount", String.valueOf(itemCount)));
+		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
+		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
+		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
+		QueryResult result;
+		if (validateResponse(response))
+		{
+			List<Post> retPosts = new ArrayList<Post>();
+			List<Tag> relatedTags = new ArrayList<Tag>();
+			JsonArray posts = response.getJsonObject("data").getJsonArray("posts");
+			if (posts != null)
+				for (int i = 0; i < posts.size(); i++)
+				{
+					Post p = new Post(this, posts.getJsonObject(i));
+					this.olderThan = p.getId();
+					retPosts.add(p);
+				}
+			JsonArray arr = response.getJsonObject("data").getJsonArray("relatedTags");
+			if (arr != null)
+				for (int i = 0; i < arr.size(); i++)
+				{
+					String s1 = (arr.getJsonObject(i).getString("key"));
+					String s2 = (arr.getJsonObject(i).getString("url"));
+					relatedTags.add(new Tag(s1, s2));
+
+				}
+			Tag searchedTag = new Tag(response.getJsonObject("data").getJsonObject("tag").getString("key"),
+					response.getJsonObject("data").getJsonObject("tag").getString("url"));
+
+			result = new QueryResult(retPosts, relatedTags, searchedTag);
+			return result;
+		} else
+		{
+			return null;
+		}
+	}
+
+	/**
+	 * Searches 9gag for a specific tag and returns a {@link List} of {@link Post}s.
+	 * 
+	 * @param tag       the tag to search for
+	 * @param itemCount the amount of posts to fetch with this tag
+	 * @param sort      sort either by ascending or descending
+	 * @return the found posts or null in case of an error
+	 */
+	public QueryResult searchTagPosts(String tag, int itemCount, SortBy sort)
+	{
+		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
+		arg.add(new Argument<String, String>("query", tag));
+		arg.add(new Argument<String, String>("fromIndex", String.valueOf(0)));
+		arg.add(new Argument<String, String>("itemCount", String.valueOf(itemCount)));
+		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
+		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
+		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
+		QueryResult result;
+		System.out.println(response);
+		if (validateResponse(response))
+		{
+			List<Post> retPosts = new ArrayList<Post>();
+			List<Tag> relatedTags = new ArrayList<Tag>();
+			JsonArray posts = response.getJsonObject("data").getJsonArray("posts");
+			if (posts != null)
+				for (int i = 0; i < posts.size(); i++)
+				{
+					Post p = new Post(this, posts.getJsonObject(i));
+					this.olderThan = p.getId();
+					retPosts.add(p);
+				}
+			JsonArray arr = response.getJsonArray("relatedTags");
+			if (arr != null)
+				for (int i = 0; i < arr.size(); i++)
+				{
+					String s1 = (arr.getJsonObject(i).getString("key"));
+					String s2 = (arr.getJsonObject(i).getString("url"));
+					relatedTags.add(new Tag(s1, s2));
+
+				}
+			Tag searchedTag = new Tag(response.getJsonObject("tag").getString("key"),
+					response.getJsonObject("tag").getString("url"));
+
+			result = new QueryResult(retPosts, relatedTags, searchedTag);
+			return result;
+		} else
+		{
+			return null;
+		}
+	}
+
+	private User getUserfromLoginResponse(JsonObject user)
+	{
+		String userId = user.getString(APIuser.USERID.getString());
+		String accountId = user.getString(APIuser.ACCOUNTID.getString());
+		String loginName = user.getString(APIuser.LOGINNAME.getString());
+		String fullName = user.getString(APIuser.FULLNAME.getString());
+		String emojiStatus = user.getString(APIuser.EMOJISTATUS.getString());
+		String email = user.getString(APIuser.EMAIL.getString());
+		String profileColor = user.getString(APIuser.PROFILECOLOR.getString());
+		int tmp = user.getInt(APIuser.HASPASSWORD.getString());
+		boolean hasPassword = false;
+		if (tmp == 1)
+			hasPassword = true;
+		String fbUserId = user.getString(APIuser.FBUSERID.getString());
+		String fbDisplayName = user.getString(APIuser.FBDISPLAYNAME.getString());
+		String gplusUserId = user.getString(APIuser.GPLUSUSERID.getString());
+		String gplusAccountName = user.getString(APIuser.GPLUSACCOUNTNAME.getString());
+		tmp = user.getInt(APIuser.CANPOSTTOFB.getString());
+		boolean canPostToFB = false;
+		if (tmp == 1)
+			canPostToFB = true;
+		int fbPublish = user.getInt(APIuser.FBPUBLISH.getString());
+		int fbTimeline = user.getInt(APIuser.FBTIMELINE.getString());
+		int fbLikeAction = user.getInt(APIuser.FBLIKEACTION.getString());
+		int fbCreateAction = user.getInt(APIuser.FBCREATEACTION.getString());
+		int fbCommentAction = user.getInt(APIuser.FBCOMMENTACTION.getString());
+
+		int safeMode = user.getInt(APIuser.SAFEMODE.getString());
+		String about = user.getString(APIuser.ABOUT.getString());
+		String lang = user.getString(APIuser.LANG.getString());
+		String location = user.getString(APIuser.LOCATION.getString());
+		int timezoneGmtOffset = user.getInt(APIuser.TIMEZONEGMTOFFSET.getString());
+		String website = user.getString(APIuser.WEBSITE.getString());
+		String profileUrl = user.getString(APIuser.PROFILEURL.getString());
+		String avatarUrlMedium = user.getString(APIuser.AVATARURLMEDIUM.getString());
+		String avatarUrlSmall = user.getString(APIuser.AVATARURLSMALL.getString());
+		String avatarUrlTiny = user.getString(APIuser.AVATARURLTINY.getString());
+		String avatarUrlLarge = user.getString(APIuser.AVATARURLLARGE.getString());
+		String gender = user.getString(APIuser.GENDER.getString());
+		String birthday = user.getString(APIuser.BIRTHDAY.getString());
+		String hideUpvote = user.getString(APIuser.HIDEUPVOTE.getString());
+		// String permissions = user.getString(APIuser.PERMISSIONS.getString());
+
+		User u = new User(userId, accountId, loginName, fullName, emojiStatus, email, profileColor, hasPassword,
+				fbUserId, fbDisplayName, gplusUserId, gplusAccountName, canPostToFB, fbPublish, fbTimeline,
+				fbLikeAction, fbCreateAction, fbCommentAction, safeMode, about, lang, location, timezoneGmtOffset,
+				website, profileUrl, avatarUrlMedium, avatarUrlSmall, avatarUrlTiny, avatarUrlLarge, gender, birthday,
+				hideUpvote);
+
+		// BiConsumer<String, JsonValue> biConsumer = (key, value) -> System.out
+		// .println("String " + key + " = user.getString(" + "APIuser." +
+		// key.toUpperCase() + ".getString());");
+
+		// user.forEach(biConsumer);
+		return u;
+
 	}
 
 	private boolean validateResponse(JsonObject obj)
@@ -106,14 +287,13 @@ public class JGag
 	 * posts. If there was an error or an invalid response, this method will return
 	 * null in such case.
 	 * 
-	 * @param group  the Section you want to fetch posts from
-	 * @param type   from where you want to grab the posts form, HOT, TRENDING or
-	 *               FRESH
-	 * @param count  the amount of posts you want to fetch
-	 * @param offset the offset of how many posts to ignore before fetching
+	 * @param group the Section you want to fetch posts from
+	 * @param type  from where you want to grab the posts form, HOT, TRENDING or
+	 *              FRESH
+	 * @param count the amount of posts you want to fetch
 	 * @return a List filled with posts or null
 	 */
-	public List<Post> getPosts(PostSection group, PostFrom type, int count, int offset)
+	public List<Post> getPosts(PostSection group, PostFrom type, int count)
 	{
 
 		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
@@ -121,7 +301,7 @@ public class JGag
 		arg.add(new Argument<String, String>("type", type.getFrom()));
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(count)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
-		arg.add(new Argument<String, String>("offset", String.valueOf(offset)));
+		// arg.add(new Argument<String, String>("offset", String.valueOf(offset)));
 		if (this.olderThan != null)
 			arg.add(new Argument<String, String>("olderThan", String.valueOf(this.olderThan)));
 
@@ -279,5 +459,10 @@ public class JGag
 			}
 		String url = service.getService() + path.getPath() + sb.toString();
 		return url;
+	}
+
+	public User getLoggedInUser()
+	{
+		return loggedInUser;
 	}
 }

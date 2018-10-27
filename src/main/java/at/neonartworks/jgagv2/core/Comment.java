@@ -26,12 +26,12 @@ public class Comment
 	private int coinCount;
 	private boolean isURL;
 	private int childrenCount;
-	private User author;
+	private CommentAuthor author;
 	private List<Comment> children = new ArrayList<Comment>();
 	private JsonObject json;
 
 	public Comment(String commentID, String text, String parentID, String permalink, int likeCount, int dislikeCount,
-			int coinCount, boolean isURL, int childrenCount, User author, JsonObject json)
+			int coinCount, boolean isURL, int childrenCount, CommentAuthor author, JsonObject json)
 	{
 		super();
 		this.commentID = commentID;
@@ -74,7 +74,7 @@ public class Comment
 			String accountId = user.getString("accountId");
 			String hashedAccountId = user.getString("hashedAccountId");
 
-			User u = new User(userID, avatarUrl, displayName, emojiStatus, accountId, hashedAccountId);
+			CommentAuthor u = new CommentAuthor(userID, avatarUrl, displayName, emojiStatus, accountId, hashedAccountId);
 			children.add(new Comment(commentID, text, parentID, permalink, likeCount, dislikeCount, coinCount, isURL,
 					childrenCount, u, cmt));
 
