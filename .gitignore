@@ -5,3 +5,6 @@
 .settings/org.eclipse.m2e.core.prefs
 src/test/java/test/JGagTest.java
 src/test/java/test/JGagTest.java
+src/test/java/test/JGagTest.java
+target/test-classes/test/JGagTest.class
+target/test-classes/test/JGagTest.class

@@ -52,6 +52,7 @@ public class JGag
 	private String device_uuid;
 	private final String LANG = "en_US";
 	private CloseableHttpClient client;
+	private String olderThan;
 
 	public JGag()
 	{
@@ -121,6 +122,8 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(count)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("offset", String.valueOf(offset)));
+		if (this.olderThan != null)
+			arg.add(new Argument<String, String>("olderThan", String.valueOf(this.olderThan)));
 
 		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null);
 		if (validateResponse(response))
@@ -131,7 +134,9 @@ public class JGag
 			if (posts != null)
 				for (int i = 0; i < posts.size(); i++)
 				{
-					retPosts.add(new Post(this, posts.getJsonObject(i)));
+					Post p = new Post(this, posts.getJsonObject(i));
+					this.olderThan = p.getId();
+					retPosts.add(p);
 				}
 
 			return retPosts;
@@ -260,9 +265,7 @@ public class JGag
 			e.printStackTrace();
 		}
 		JsonObject object = jsonReader.readObject();
-		
-		
-		
+
 		return object;
 	}
 

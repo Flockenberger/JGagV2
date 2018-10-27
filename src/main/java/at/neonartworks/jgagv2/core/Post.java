@@ -26,6 +26,22 @@ public class Post
 	private String url;
 	private String type;
 	private String mediaURL;
+	private int reportedStatus;
+	private String status;
+	private int fbShres;
+	private int tweetCount;
+	private String sourceDomain;
+	private String sourceURL;
+	private String externalURL;
+	private String channel;
+	private String isVoted;
+	private int userScore;
+	private boolean hasLongPostCover;
+	private boolean isVoteMasked;
+	private String albumWebUrl;
+	private int score;
+	private int viewsCount;
+	private int version;
 	private boolean nsfw;
 	private int upvotes;
 	private int downvotes;
@@ -82,6 +98,31 @@ public class Post
 		String secName = obj.getJsonObject("postSection").getString("name");
 		String securl = obj.getJsonObject("postSection").getString("url");
 		String secimageUrl = obj.getJsonObject("postSection").getString("imageUrl");
+
+		this.reportedStatus = obj.getInt("reportedStatus");
+		this.status = obj.getString("status");
+		this.fbShres = obj.getInt("fbShares");
+		this.tweetCount = obj.getInt("tweetCount");
+		this.sourceDomain = obj.getString("sourceDomain");
+		this.sourceURL = obj.getString("sourceUrl");
+		this.externalURL = obj.getString("externalUrl");
+		this.channel = obj.getString("channel");
+		this.isVoted = obj.getString("isVoted");
+		this.userScore = obj.getInt("userScore");
+		int _hasLongPostCover = obj.getInt("hasLongPostCover");
+		if (_hasLongPostCover == 1)
+			this.hasLongPostCover = true;
+		else
+			this.hasLongPostCover = false;
+		int _isVoteMasked = obj.getInt("isVoteMasked");
+		if (_isVoteMasked == 1)
+			this.isVoteMasked = true;
+		else
+			this.isVoteMasked = false;
+		this.albumWebUrl = obj.getString("albumWebUrl");
+		this.score = obj.getInt("score");
+		this.viewsCount = obj.getInt("viewsCount");
+		this.version = obj.getInt("version");
 
 		this.section = new Section(secName, securl, secimageUrl);
 		this.mediaURL = fetchMediaURL();
@@ -166,9 +207,175 @@ public class Post
 	public String toString()
 	{
 		return "Post [id=" + id + ", title=" + title + ", url=" + url + ", type=" + type + ", mediaURL=" + mediaURL
-				+ ", nsfw=" + nsfw + ", upvotes=" + upvotes + ", downvotes=" + downvotes + ", totalVotes=" + totalVotes
+				+ ", reportedStatus=" + reportedStatus + ", status=" + status + ", fbShres=" + fbShres + ", tweetCount="
+				+ tweetCount + ", sourceDomain=" + sourceDomain + ", sourceURL=" + sourceURL + ", externalURL="
+				+ externalURL + ", channel=" + channel + ", isVoted=" + isVoted + ", userScore=" + userScore
+				+ ", hasLongPostCover=" + hasLongPostCover + ", isVoteMasked=" + isVoteMasked + ", albumWebUrl="
+				+ albumWebUrl + ", score=" + score + ", viewsCount=" + viewsCount + ", version=" + version + ", nsfw="
+				+ nsfw + ", upvotes=" + upvotes + ", downvotes=" + downvotes + ", totalVotes=" + totalVotes
 				+ ", promotedPost=" + promotedPost + ", commentsCount=" + commentsCount + ", orderID=" + orderID
-				+ ", section=" + section + ", tags=" + tags + "]";
+				+ ", section=" + section + ", api=" + api + ", tags=" + tags + ", comments=" + comments + ", json="
+				+ json + "]";
+	}
+
+	/**
+	 * Returns the reported status of this post.
+	 * 
+	 * @return the reported status;
+	 */
+	public int getReportedStatus()
+	{
+		return reportedStatus;
+	}
+
+	/**
+	 * Returns the status of this post.
+	 * 
+	 * @return the status of this post
+	 */
+	public String getStatus()
+	{
+		return status;
+	}
+
+	/**
+	 * Returns the amount of Facebook shares this post has.
+	 * 
+	 * @return the Facebook shares
+	 */
+	public int getFbShres()
+	{
+		return fbShres;
+	}
+
+	/**
+	 * Returns the amount of Tweets this post has.
+	 * 
+	 * @return the amount of Tweets.
+	 */
+	public int getTweetCount()
+	{
+		return tweetCount;
+	}
+
+	/**
+	 * Returns the source domain. **I think for Youtube video, not sure!**
+	 * 
+	 * @return the source domain
+	 */
+	public String getSourceDomain()
+	{
+		return sourceDomain;
+	}
+
+	/**
+	 * Returns the source URL. **I think for Youtube video, not sure!**
+	 * 
+	 * @return the source URL
+	 */
+	public String getSourceURL()
+	{
+		return sourceURL;
+	}
+
+	/**
+	 * Returns the external URL. **I think for Youtube video, not sure!**
+	 * 
+	 * @return the external URL
+	 */
+	public String getExternalURL()
+	{
+		return externalURL;
+	}
+
+	/**
+	 * Returns the channel of this post.
+	 * 
+	 * @return the channel
+	 */
+	public String getChannel()
+	{
+		return channel;
+	}
+
+	/**
+	 * Returns the isVoted parameter of this post **Not idea what this is**
+	 * 
+	 * @return the isVoted parameter.
+	 */
+	public String getIsVoted()
+	{
+		return isVoted;
+	}
+
+	/**
+	 * Returns the UserScore parameter of this post. **Not idea what this is**
+	 * 
+	 * @return the UserScore parameter
+	 */
+	public int getUserScore()
+	{
+		return userScore;
+	}
+
+	/**
+	 * Returns whether this post has the "long post" cover in 9GAG.
+	 * 
+	 * @return exactly what I had written above
+	 */
+	public boolean isHasLongPostCover()
+	{
+		return hasLongPostCover;
+	}
+
+	/**
+	 * Returns the isVotedMask parameter. **Not idea what this is**
+	 * 
+	 * @return the isVotedMask parameter.
+	 */
+	public boolean isVoteMasked()
+	{
+		return isVoteMasked;
+	}
+
+	/**
+	 * Returns the albumWebUrl parameter. **Not idea what this is**
+	 * 
+	 * @return the albumWebUrl parameter
+	 */
+	public String getAlbumWebUrl()
+	{
+		return albumWebUrl;
+	}
+
+	/**
+	 * The score of this post. **Not idea what this is**
+	 * 
+	 * @return the score of this post
+	 */
+	public int getScore()
+	{
+		return score;
+	}
+
+	/**
+	 * Returns the views count. This has so far always been 0 in my tests
+	 * 
+	 * @return the views count
+	 */
+	public int getViewsCount()
+	{
+		return viewsCount;
+	}
+
+	/**
+	 * Returns the version parameter. **Again not quite sure what version**
+	 * 
+	 * @return the version parameter
+	 */
+	public int getVersion()
+	{
+		return version;
 	}
 
 	/**
