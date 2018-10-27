@@ -114,8 +114,9 @@ public class JGag
 
 	/**
 	 * Searches 9GAG for a specific query. I am not sure whether 9gag searches
-	 * through tags or the title string, maybe both. It returns a {@link List} of
-	 * {@link Post}s.
+	 * through tags or the title string, maybe both. This method returns a
+	 * {@link QueryResult}. This result contains all {@link Post}s and related
+	 * {@link Tag}s aswell as the {@link Tag} which was used for the query.
 	 * 
 	 * @param query     the query to search for
 	 * @param itemCount the amount of posts to fetch
@@ -165,7 +166,9 @@ public class JGag
 	}
 
 	/**
-	 * Searches 9gag for a specific tag and returns a {@link List} of {@link Post}s.
+	 * Searches 9gag for a specific tag. This method returns a {@link QueryResult}.
+	 * This result contains all {@link Post}s and related {@link Tag}s aswell as the
+	 * {@link Tag} which was used for the query.
 	 * 
 	 * @param tag       the tag to search for
 	 * @param itemCount the amount of posts to fetch with this tag
@@ -182,7 +185,7 @@ public class JGag
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
 		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
 		QueryResult result;
-		System.out.println(response);
+	
 		if (validateResponse(response))
 		{
 			List<Post> retPosts = new ArrayList<Post>();
