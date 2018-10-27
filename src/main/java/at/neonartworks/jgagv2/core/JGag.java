@@ -24,14 +24,19 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 
-import at.neonartworks.jgagv2.util.APIPath;
-import at.neonartworks.jgagv2.util.AppID;
+import at.neonartworks.jgagv2.api.APIPath;
+import at.neonartworks.jgagv2.api.APIuser;
+import at.neonartworks.jgagv2.api.AppID;
+import at.neonartworks.jgagv2.api.DeviceType;
+import at.neonartworks.jgagv2.api.HeaderType;
+import at.neonartworks.jgagv2.api.Services;
+import at.neonartworks.jgagv2.core.post.Post;
+import at.neonartworks.jgagv2.core.post.PostFrom;
+import at.neonartworks.jgagv2.core.post.PostSection;
+import at.neonartworks.jgagv2.core.post.Tag;
 import at.neonartworks.jgagv2.util.Argument;
-import at.neonartworks.jgagv2.util.DeviceType;
-import at.neonartworks.jgagv2.util.HeaderType;
 import at.neonartworks.jgagv2.util.JGagUtil;
 import at.neonartworks.jgagv2.util.RESTType;
-import at.neonartworks.jgagv2.util.Services;
 import at.neonartworks.jgagv2.util.SortBy;
 
 /**
@@ -61,7 +66,11 @@ public class JGag
 	 * post-list/userId/{userId}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}/olderThan/{olderThan}
 	 * tags ->type String url-info ->urls String user-info
 	 * 
-	 * 
+	 * // posting stuff to 9gag research // post_tags // upload_type 2 = gif, 5
+	 * =mp4, else jpg! // source // upload_id // progress // section // submit_ts
+	 * System.currentTimeMillis() // title // public static final int IMAGE_TYPE_GIF
+	 * = 2; // public static final int IMAGE_TYPE_JPG = 1; // public static final
+	 * int IMAGE_TYPE_MP4 = 5; // public static final int IMAGE_TYPE_RAW = 4;
 	 */
 	private String app_id;
 	private String token;
@@ -69,7 +78,7 @@ public class JGag
 	private final String LANG = "en_US";
 	private CloseableHttpClient client;
 	private String olderThan;
-	private User loggedInUser;
+	private LoggedInUser loggedInUser;
 
 	public JGag()
 	{
@@ -99,7 +108,7 @@ public class JGag
 		arg.add(new Argument<String, String>("language", LANG));
 
 		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null);
-
+		// System.out.println(response);
 		this.loggedInUser = getUserfromLoginResponse(response.getJsonObject("data").getJsonObject("user"));
 
 		boolean succ = validateResponse(response);
@@ -115,7 +124,7 @@ public class JGag
 	/**
 	 * Searches 9GAG for a specific query. I am not sure whether 9gag searches
 	 * through tags or the title string, maybe both. This method returns a
-	 * {@link QueryResult}. This result contains all {@link Post}s and related
+	 * {@link SearchResult}. This result contains all {@link Post}s and related
 	 * {@link Tag}s aswell as the {@link Tag} which was used for the query.
 	 * 
 	 * @param query     the query to search for
@@ -123,7 +132,7 @@ public class JGag
 	 * @param sort      sort either by ascending or descending
 	 * @return the found posts or null in case of an error
 	 */
-	public QueryResult searchPosts(String query, int itemCount, SortBy sort)
+	public SearchResult searchPosts(String query, int itemCount, SortBy sort)
 	{
 		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
 		arg.add(new Argument<String, String>("query", query));
@@ -132,7 +141,7 @@ public class JGag
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
 		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
-		QueryResult result;
+		SearchResult result;
 		if (validateResponse(response))
 		{
 			List<Post> retPosts = new ArrayList<Post>();
@@ -157,7 +166,7 @@ public class JGag
 			Tag searchedTag = new Tag(response.getJsonObject("data").getJsonObject("tag").getString("key"),
 					response.getJsonObject("data").getJsonObject("tag").getString("url"));
 
-			result = new QueryResult(retPosts, relatedTags, searchedTag);
+			result = new SearchResult(retPosts, relatedTags, searchedTag);
 			return result;
 		} else
 		{
@@ -165,8 +174,25 @@ public class JGag
 		}
 	}
 
+	public void upload()
+	{
+		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
+		arg.add(new Argument<String, String>("uploadId",
+				getLoggedInUser().getAccountId() + "_" + System.currentTimeMillis()));
+		arg.add(new Argument<String, String>("media_type", "5"));
+		arg.add(new Argument<String, String>("upload_type", "5"));
+		//arg.add(new Argument<String, String>("step_type", "1"));
+		arg.add(new Argument<String, String>("media_meta", "1"));
+		arg.add(new Argument<String, String>("group_id", String.valueOf(PostSection.FUNNY.getId())));
+		arg.add(new Argument<String, String>("source", "https://www.youtube.com/watch?v=owu2oWX46Z0"));
+		arg.add(new Argument<String, String>("urlMedia", "https://www.youtube.com/watch?v=owu2oWX46Z0"));
+
+		JsonObject response = makeRequest(RESTType.POST, APIPath.POST_SUBMIT, Services.API, null, arg);
+		System.out.println(response);
+	}
+
 	/**
-	 * Searches 9gag for a specific tag. This method returns a {@link QueryResult}.
+	 * Searches 9gag for a specific tag. This method returns a {@link SearchResult}.
 	 * This result contains all {@link Post}s and related {@link Tag}s aswell as the
 	 * {@link Tag} which was used for the query.
 	 * 
@@ -175,7 +201,7 @@ public class JGag
 	 * @param sort      sort either by ascending or descending
 	 * @return the found posts or null in case of an error
 	 */
-	public QueryResult searchTagPosts(String tag, int itemCount, SortBy sort)
+	public SearchResult searchTagPosts(String tag, int itemCount, SortBy sort)
 	{
 		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
 		arg.add(new Argument<String, String>("query", tag));
@@ -184,8 +210,8 @@ public class JGag
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
 		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg);
-		QueryResult result;
-	
+		SearchResult result;
+
 		if (validateResponse(response))
 		{
 			List<Post> retPosts = new ArrayList<Post>();
@@ -210,7 +236,7 @@ public class JGag
 			Tag searchedTag = new Tag(response.getJsonObject("tag").getString("key"),
 					response.getJsonObject("tag").getString("url"));
 
-			result = new QueryResult(retPosts, relatedTags, searchedTag);
+			result = new SearchResult(retPosts, relatedTags, searchedTag);
 			return result;
 		} else
 		{
@@ -218,7 +244,7 @@ public class JGag
 		}
 	}
 
-	private User getUserfromLoginResponse(JsonObject user)
+	private LoggedInUser getUserfromLoginResponse(JsonObject user)
 	{
 		String userId = user.getString(APIuser.USERID.getString());
 		String accountId = user.getString(APIuser.ACCOUNTID.getString());
@@ -261,7 +287,7 @@ public class JGag
 		String hideUpvote = user.getString(APIuser.HIDEUPVOTE.getString());
 		// String permissions = user.getString(APIuser.PERMISSIONS.getString());
 
-		User u = new User(userId, accountId, loginName, fullName, emojiStatus, email, profileColor, hasPassword,
+		LoggedInUser u = new LoggedInUser(userId, accountId, loginName, fullName, emojiStatus, email, profileColor, hasPassword,
 				fbUserId, fbDisplayName, gplusUserId, gplusAccountName, canPostToFB, fbPublish, fbTimeline,
 				fbLikeAction, fbCreateAction, fbCommentAction, safeMode, about, lang, location, timezoneGmtOffset,
 				website, profileUrl, avatarUrlMedium, avatarUrlSmall, avatarUrlTiny, avatarUrlLarge, gender, birthday,
@@ -327,32 +353,6 @@ public class JGag
 		{
 			return null;
 		}
-	}
-
-	// posting stuff to 9gag research
-	// post_tags
-	// upload_type 2 = gif, 5 =mp4, else jpg!
-	// source
-	// upload_id
-	// progress
-	// section
-	// submit_ts System.currentTimeMillis()
-	// title
-	// public static final int IMAGE_TYPE_GIF = 2;
-	// public static final int IMAGE_TYPE_JPG = 1;
-	// public static final int IMAGE_TYPE_MP4 = 5;
-	// public static final int IMAGE_TYPE_RAW = 4;
-	public boolean uploadImage(String caption, ImageType imgType, PostSection section, List<Tag> tags,
-			BufferedImage image)
-	{
-
-		return true;
-	}
-
-	public boolean uploadYoutubeVideo(String caption, ImageType imgType, PostSection section, List<Tag> tags,
-			URL youtubeURL)
-	{
-		return true;
 	}
 
 	/**
@@ -464,7 +464,7 @@ public class JGag
 		return url;
 	}
 
-	public User getLoggedInUser()
+	public LoggedInUser getLoggedInUser()
 	{
 		return loggedInUser;
 	}

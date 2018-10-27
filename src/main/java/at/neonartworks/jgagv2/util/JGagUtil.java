@@ -5,6 +5,13 @@ import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
+/**
+ * 
+ * 
+ * 
+ * @author Florian Wagner
+ *
+ */
 public class JGagUtil
 {
 
@@ -57,7 +64,7 @@ public class JGagUtil
 	public static String sign(String timestamp, String app_id, String device_uuid)
 	{
 		String s1 = "*" + timestamp + "_._" + app_id + "._." + device_uuid + "9GAG";
-	
+
 		String s2 = null;
 		try
 		{
@@ -67,7 +74,7 @@ public class JGagUtil
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return 	DigestUtils.sha1Hex(s2);
+		return DigestUtils.sha1Hex(s2);
 
 	}
 
