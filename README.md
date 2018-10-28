@@ -136,3 +136,7 @@ Note the entryId is the id of the post.
 The upload id is a String value which consits of the accountId of the logged in User and a timestamp with an _ in between.
 I noticed that 9GAG uses the timestamp which counts since 1970.
 Example uploadId: ```50222134_1540733568```
+
+
+# INFO
+I will not be held responsible for anything that is done or made using this Java library!
