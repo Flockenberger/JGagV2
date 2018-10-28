@@ -6,9 +6,9 @@ import java.util.List;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 
-import at.neonartworks.jgagv2.api.APIPath;
+import at.neonartworks.jgagv2.api.APIpath;
 import at.neonartworks.jgagv2.api.AppID;
-import at.neonartworks.jgagv2.api.Services;
+import at.neonartworks.jgagv2.api.APIservice;
 import at.neonartworks.jgagv2.core.JGag;
 import at.neonartworks.jgagv2.core.comment.Comment;
 import at.neonartworks.jgagv2.core.comment.CommentAuthor;
@@ -154,7 +154,7 @@ public class Post
 		params.add(new Argument<String, String>("commentL2", String.valueOf("10")));
 		params.add(new Argument<String, String>("pretty", String.valueOf(1)));
 
-		JsonObject response = api.makeRequest(RESTType.GET, APIPath.TOP_COMMENTS, Services.COMMENT_CDN,
+		JsonObject response = api.makeRequest(RESTType.GET, APIpath.TOP_COMMENTS, APIservice.COMMENT_CDN,
 				new ArrayList<Argument<String, String>>(), params, null);
 
 		// top_comment.add()

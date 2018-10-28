@@ -2,7 +2,6 @@ package at.neonartworks.jgagv2.core;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,8 +25,8 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
@@ -38,14 +37,19 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 
-import at.neonartworks.jgagv2.api.APIPath;
+import at.neonartworks.jgagv2.api.APIpath;
 import at.neonartworks.jgagv2.api.APIuser;
 import at.neonartworks.jgagv2.api.AppID;
 import at.neonartworks.jgagv2.api.DeviceType;
 import at.neonartworks.jgagv2.api.HeaderType;
-import at.neonartworks.jgagv2.api.Services;
+import at.neonartworks.jgagv2.api.APIservice;
+import at.neonartworks.jgagv2.api.APIstatus;
+import at.neonartworks.jgagv2.core.exception.GagApiException;
+import at.neonartworks.jgagv2.core.exception.GagApiResponseException;
+import at.neonartworks.jgagv2.core.exception.GagApiTagLengthException;
+import at.neonartworks.jgagv2.core.listener.ProgressEntityWrapper;
+import at.neonartworks.jgagv2.core.listener.ProgressListener;
 import at.neonartworks.jgagv2.core.post.Post;
 import at.neonartworks.jgagv2.core.post.PostFrom;
 import at.neonartworks.jgagv2.core.post.PostSection;
@@ -95,6 +99,7 @@ public class JGag
 	private CloseableHttpClient client;
 	private String olderThan;
 	private LoggedInUser loggedInUser;
+	private Calendar cl = Calendar.getInstance();
 
 	public JGag()
 	{
@@ -123,7 +128,7 @@ public class JGag
 		arg.add(new Argument<String, String>("loginName", ua));
 		arg.add(new Argument<String, String>("language", LANG));
 
-		JsonObject response = makeRequest(RESTType.GET, APIPath.USER_TOKEN, Services.API, arg, null, null);
+		JsonObject response = makeRequest(RESTType.GET, APIpath.USER_TOKEN, APIservice.API, arg, null, null);
 		// System.out.println(response);
 		this.loggedInUser = getUserfromLoginResponse(response.getJsonObject("data").getJsonObject("user"));
 
@@ -156,7 +161,7 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(itemCount)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
-		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg, null);
+		JsonObject response = makeRequest(RESTType.GET, APIpath.TAG_SEARCH, APIservice.API, null, arg, null);
 		SearchResult result;
 		if (validateResponse(response))
 		{
@@ -190,14 +195,9 @@ public class JGag
 		}
 	}
 
-	/**
-	 * IN THE WORKS~~
-	 */
-	protected void upload()
+	private File compresJPG(File file, float compression)
 	{
-		File file = new File("S:\\_2_images\\9GAG\\Asking-the-real-question.jpg");
-
-		File compressedImageFile = new File("compressed_image.jpg");
+		File compressedImageFile = new File("upload.jpg");
 		OutputStream os = null;
 		BufferedImage image = null;
 		try
@@ -225,26 +225,9 @@ public class JGag
 		writer.setOutput(ios);
 
 		ImageWriteParam param = writer.getDefaultWriteParam();
-
-		List<Argument<String, String>> metaArgs = new ArrayList<Argument<String, String>>();
-		List<Argument<String, String>> uploadArgs = new ArrayList<Argument<String, String>>();
-		int isNSFW = 0;
-		String title = "HereCouldBeSomething";
-		Calendar cl = Calendar.getInstance();
-		String uploadId = getLoggedInUser().getAccountId() + "_" + (cl.getTimeInMillis() / 1000l);
-
-		metaArgs.add(new Argument<String, String>("uploadId", uploadId));
-		metaArgs.add(new Argument<String, String>("isNSFW", String.valueOf(isNSFW)));
-		metaArgs.add(new Argument<String, String>("step", "metaData"));
-		metaArgs.add(new Argument<String, String>("section", PostSection.FUNNY.getName().toLowerCase()));
-		metaArgs.add(new Argument<String, String>("title", title));
-		metaArgs.add(new Argument<String, String>("tags", "test1,test2,stest3"));
-
-		uploadArgs.add(new Argument<String, String>("uploadId", uploadId));
-		uploadArgs.add(new Argument<String, String>("step", "imageData"));
-
 		param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-		param.setCompressionQuality(0.05f); // Change the quality value you prefer
+		param.setCompressionQuality(compression); // Change the quality value you prefer
+
 		try
 		{
 			writer.write(null, new IIOImage(image, null, null), param);
@@ -264,18 +247,181 @@ public class JGag
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		return compressedImageFile;
+	}
 
-		// new ("", new FileBody(file))
-		FileBody fileBody = new FileBody(compressedImageFile, ContentType.IMAGE_JPEG);
-		HttpEntity mpEntity = MultipartEntityBuilder.create().addPart("imageData", fileBody).build();
+	private String createTagList(String[] args) throws GagApiTagLengthException
+	{
+		if (args.length > 3)
+		{
+			throw new GagApiTagLengthException("Too many Tags!");
+		}
+		StringBuilder sb = new StringBuilder();
+		int c = 0;
+		for (String s : args)
+		{
+			sb.append(s);
+			if (c < args.length - 1)
+			{
+				sb.append(",");
+			}
+			c++;
+		}
+		return sb.toString();
+	}
 
-		JsonObject response = makeRequest(RESTType.POST, APIPath.POST_SUBMIT, Services.API, null, uploadArgs, mpEntity);
-		System.out.println(response);
+	/**
+	 * Uploads an Image to 9GAG. The Image has to be in .jpg format.
+	 * 
+	 * @param file        a file pointing to the image that should be uploaded
+	 * @param compression typically the images are too large to upload. Thus you can
+	 *                    compress the image with this value. This value has to be
+	 *                    between 0 and 1. A compression quality setting of 0.0 is
+	 *                    most generically interpreted as "high compression is
+	 *                    important," while a setting of 1.0 is most generically
+	 *                    interpreted as "high image quality is important."
+	 * @param title       The title/caption of the image.
+	 * @param section     The section you want the image to upload to
+	 * @param isNSFW      whether the post is "not safe for work"
+	 * @param tags        the tags of this post. Can be null but must be less than
+	 *                    3!
+	 * @return the newly created {@link Post} or null in case of an error
+	 * @throws GagApiException
+	 */
+	public Post uploadImage(File file, float compression, String title, PostSection section, boolean isNSFW,
+			String... tags) throws GagApiException
+	{
+		String tagList = "";
+		if (tags != null)
+			tagList = createTagList(tags);
 
-		response = makeRequest(RESTType.POST, APIPath.POST_SUBMIT, Services.API, null, metaArgs, null);
+		String timestamp = String.valueOf(cl.getTimeInMillis() / 1000l);
 
-		System.out.println(response);
+		file = compresJPG(file, compression);
+		String uploadId = getLoggedInUser().getAccountId() + "_" + timestamp;
 
+		HttpEntity metaEntity = MultipartEntityBuilder.create().addTextBody("isNSFW", String.valueOf(isNSFW))
+				.addTextBody("step", "metaData").addTextBody("section", section.getName().toLowerCase())
+				.addTextBody("title", title).addTextBody("tags", tagList).addTextBody("uploadId", uploadId).build();
+
+		HttpEntity mpEntity = MultipartEntityBuilder.create().addPart("imageData", new FileBody(file))
+				.addTextBody("step", "imageData").addTextBody("uploadId", uploadId).build();
+
+		HttpEntity triggerEntity = MultipartEntityBuilder.create().addTextBody("step", "triggerCreation")
+				.addTextBody("uploadId", uploadId).build();
+
+		JsonObject response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, mpEntity);
+		if (validateImageUpload(response))
+		{
+			response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, metaEntity);
+			if (validateMetaUpload(response))
+			{
+				response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, triggerEntity);
+				String entryId = validateUploadAndGetPostId(response);
+				removeFileAfterUpload(file);
+				return getPostById(entryId);
+
+			}
+		}
+		return null;
+
+	}
+
+	/**
+	 * Returns a {@link Post} object containing all information about this 9GAG
+	 * post.
+	 * 
+	 * @param id the id of the 9gag post. The post id is typically
+	 *           https://9gag.com/gag/<b>THIS PART<b>
+	 * @return a Post object for this id or null if the post could not be found
+	 */
+	public Post getPostById(String id)
+	{
+		List<Argument<String, String>> arg = new ArrayList<Argument<String, String>>();
+		arg.add(new Argument<String, String>("entryIds", id));
+		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
+		JsonObject response = makeRequest(RESTType.GET, APIpath.POST, APIservice.API, null, arg, null);
+		// System.out.println(response);
+		if (validateResponse(response))
+		{
+			return new Post(this, response.getJsonObject("data").getJsonArray("posts").getJsonObject(0));
+		}
+		return null;
+	}
+
+	private void removeFileAfterUpload(File f)
+	{
+		if (f.exists())
+		{
+			f.delete();
+		}
+	}
+
+	private boolean isMetaStatusOK(JsonObject obj) throws GagApiException
+	{
+		JsonObject meta = obj.getJsonObject("meta");
+		String status = meta.getString("status");
+
+		if (status.equals(APIstatus.FAILURE))
+		{
+			String errorCode = meta.getString("errorCode");
+			String errorMessage = meta.getString("errorMessage");
+			throw new GagApiResponseException(errorCode, errorMessage);
+		}
+		return true;
+	}
+
+	private String validateUploadAndGetPostId(JsonObject obj) throws GagApiException
+	{
+		if (isMetaStatusOK(obj))
+		{
+			JsonObject data = obj.getJsonObject("data");
+			if (validateMetaUpload(obj))
+			{
+				String entryId = null;
+				try
+				{
+					entryId = data.getString("entryId");
+
+				} catch (Exception e)
+				{
+					System.err.println("EntryId null!");
+				}
+				if (entryId != null)
+				{
+					return entryId;
+				}
+			}
+		}
+		return "null";
+	}
+
+	private boolean validateImageUpload(JsonObject obj) throws GagApiException
+	{
+		if (isMetaStatusOK(obj))
+		{
+			JsonObject data = obj.getJsonObject("data");
+			int _imageStatus = data.getInt("imageStatus");
+			int _mediaStatus = data.getInt("mediaStatus");
+			if (_imageStatus == 1 && _mediaStatus == 1)
+				return true;
+		}
+		return false;
+	}
+
+	private boolean validateMetaUpload(JsonObject obj) throws GagApiException
+	{
+		if (isMetaStatusOK(obj))
+		{
+			JsonObject data = obj.getJsonObject("data");
+			if (validateImageUpload(obj))
+			{
+				int _metaStatus = data.getInt("metaStatus");
+				if (_metaStatus == 1)
+					return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -296,7 +442,7 @@ public class JGag
 		arg.add(new Argument<String, String>("itemCount", String.valueOf(itemCount)));
 		arg.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
 		arg.add(new Argument<String, String>("sortBy", sort.getSortBy()));
-		JsonObject response = makeRequest(RESTType.GET, APIPath.TAG_SEARCH, Services.API, null, arg, null);
+		JsonObject response = makeRequest(RESTType.GET, APIpath.TAG_SEARCH, APIservice.API, null, arg, null);
 		SearchResult result;
 
 		if (validateResponse(response))
@@ -421,7 +567,7 @@ public class JGag
 		if (this.olderThan != null)
 			arg.add(new Argument<String, String>("olderThan", String.valueOf(this.olderThan)));
 
-		JsonObject response = makeRequest(RESTType.GET, APIPath.POST_LIST, Services.API, arg, null, null);
+		JsonObject response = makeRequest(RESTType.GET, APIpath.POST_LIST, APIservice.API, arg, null, null);
 		if (validateResponse(response))
 		{
 			List<Post> retPosts = new ArrayList<Post>();
@@ -453,8 +599,8 @@ public class JGag
 	 * @param params  parameters to send with the query
 	 * @return returns an {@link JsonObject} containing the response
 	 */
-	public JsonObject makeRequest(RESTType method, APIPath path, Services service, List<Argument<String, String>> args,
-			List<Argument<String, String>> params, HttpEntity ent)
+	public JsonObject makeRequest(RESTType method, APIpath path, APIservice service,
+			List<Argument<String, String>> args, List<Argument<String, String>> params, HttpEntity ent)
 	{
 
 		String url = formatURL(service, path, args);
@@ -475,6 +621,7 @@ public class JGag
 
 		HttpGet get = new HttpGet(url);
 		HttpPost post = new HttpPost(url);
+
 		HttpResponse response = null;
 
 		URIBuilder builder = new URIBuilder(get.getURI());
@@ -509,7 +656,7 @@ public class JGag
 
 		}
 		client = HttpClientBuilder.create().build();
-
+		//System.out.println(post.getRequestLine());
 		try
 		{
 			if (method.equals(RESTType.GET))
@@ -544,7 +691,7 @@ public class JGag
 		return object;
 	}
 
-	private String formatURL(Services service, APIPath path, List<Argument<String, String>> args)
+	private String formatURL(APIservice service, APIpath path, List<Argument<String, String>> args)
 	{
 		StringBuilder sb = new StringBuilder();
 		if (args != null)
