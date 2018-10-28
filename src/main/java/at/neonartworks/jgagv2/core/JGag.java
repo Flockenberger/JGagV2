@@ -26,11 +26,9 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -39,17 +37,16 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 
 import at.neonartworks.jgagv2.api.APIpath;
+import at.neonartworks.jgagv2.api.APIservice;
+import at.neonartworks.jgagv2.api.APIstatus;
+import at.neonartworks.jgagv2.api.APIstep;
 import at.neonartworks.jgagv2.api.APIuser;
 import at.neonartworks.jgagv2.api.AppID;
 import at.neonartworks.jgagv2.api.DeviceType;
 import at.neonartworks.jgagv2.api.HeaderType;
-import at.neonartworks.jgagv2.api.APIservice;
-import at.neonartworks.jgagv2.api.APIstatus;
 import at.neonartworks.jgagv2.core.exception.GagApiException;
 import at.neonartworks.jgagv2.core.exception.GagApiResponseException;
 import at.neonartworks.jgagv2.core.exception.GagApiTagLengthException;
-import at.neonartworks.jgagv2.core.listener.ProgressEntityWrapper;
-import at.neonartworks.jgagv2.core.listener.ProgressListener;
 import at.neonartworks.jgagv2.core.post.Post;
 import at.neonartworks.jgagv2.core.post.PostFrom;
 import at.neonartworks.jgagv2.core.post.PostSection;
@@ -175,6 +172,67 @@ public class JGag
 	}
 
 	/**
+	 * Returns a list of all Sections available.
+	 * 
+	 * @return a list of all 9GAG sections.
+	 */
+	public List<Section> getSectionList()
+	{
+
+		List<Argument<String, String>> params = new ArrayList<Argument<String, String>>();
+		params.add(new Argument<String, String>("entryTypes", "animated,photo,video,album"));
+		params.add(new Argument<String, String>("locale", getLoggedInUser().getLang()));
+
+		JsonObject response = makeRequest(RESTType.GET, APIpath.GROUP_LIST, APIservice.API, params, params, null);
+		List<Section> sections = new ArrayList<Section>();
+
+		if (validateResponse(response))
+		{
+			JsonObject data = response.getJsonObject("data");
+			JsonArray groups = data.getJsonArray("groups");
+			for (int i = 0; i < groups.size(); i++)
+			{
+				JsonObject tmp = groups.getJsonObject(i);
+				List<Tag> tags = new ArrayList<Tag>();
+				int id = Integer.valueOf(tmp.getString("id"));
+				String url = tmp.getString("url");
+				String name = tmp.getString("name");
+				String description = tmp.getString("description");
+				int _userUploadEnabled = tmp.getInt("userUploadEnabled");
+				boolean userUploadEnabled = false;
+				if (_userUploadEnabled == 1)
+					userUploadEnabled = true;
+				String listType = tmp.getString("listType");
+				String listType2 = tmp.getString("listType2");
+				String ogImageUrl = tmp.getString("ogImageUrl");
+				int _isSensitive = tmp.getInt("isSensitive");
+				boolean isSensitive = false;
+				if (_isSensitive == 1)
+					isSensitive = true;
+				JsonArray arr = tmp.getJsonArray("featuredTags");
+				if (arr != null)
+					for (int ii = 0; ii < arr.size(); ii++)
+					{
+						String s1 = (arr.getJsonObject(ii).getString("key"));
+						String s2 = (arr.getJsonObject(ii).getString("url"));
+						tags.add(new Tag(s1, s2));
+
+					}
+				sections.add(new Section(id, url, name, description, userUploadEnabled, listType, listType2, ogImageUrl,
+						tags, isSensitive));
+			}
+		}
+
+		return sections;
+	}
+
+	public void writeComment()
+	{
+		JsonObject response = makeRequest(RESTType.GET, APIpath.COMMENTS, APIservice.API, null, null, null);
+		System.out.println(response);
+	}
+
+	/**
 	 * Searches 9GAG for a specific query. I am not sure whether 9gag searches
 	 * through tags or the title string, maybe both. This method returns a
 	 * {@link SearchResult}. This result contains all {@link Post}s and related
@@ -227,7 +285,7 @@ public class JGag
 		}
 	}
 
-	private File compresJPG(File file, float compression)
+	private File compressJPG(File file, float compression)
 	{
 		File compressedImageFile = new File("upload.jpg");
 		OutputStream os = null;
@@ -329,18 +387,19 @@ public class JGag
 
 		String timestamp = String.valueOf(cl.getTimeInMillis() / 1000l);
 
-		file = compresJPG(file, compression);
+		file = compressJPG(file, compression);
 		String uploadId = getLoggedInUser().getAccountId() + "_" + timestamp;
 
 		HttpEntity metaEntity = MultipartEntityBuilder.create().addTextBody("isNSFW", String.valueOf(isNSFW))
-				.addTextBody("step", "metaData").addTextBody("section", section.getName().toLowerCase())
-				.addTextBody("title", title).addTextBody("tags", tagList).addTextBody("uploadId", uploadId).build();
+				.addTextBody("step", APIstep.META_DATA.getStep())
+				.addTextBody("section", section.getName().toLowerCase()).addTextBody("title", title)
+				.addTextBody("tags", tagList).addTextBody("uploadId", uploadId).build();
 
 		HttpEntity mpEntity = MultipartEntityBuilder.create().addPart("imageData", new FileBody(file))
-				.addTextBody("step", "imageData").addTextBody("uploadId", uploadId).build();
+				.addTextBody("step", APIstep.IMAGE_DATA.getStep()).addTextBody("uploadId", uploadId).build();
 
-		HttpEntity triggerEntity = MultipartEntityBuilder.create().addTextBody("step", "triggerCreation")
-				.addTextBody("uploadId", uploadId).build();
+		HttpEntity triggerEntity = MultipartEntityBuilder.create()
+				.addTextBody("step", APIstep.TRIGGER_CREATION.getStep()).addTextBody("uploadId", uploadId).build();
 
 		JsonObject response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, mpEntity);
 		if (validateImageUpload(response))
@@ -358,6 +417,61 @@ public class JGag
 		}
 		return null;
 
+	}
+
+	/**
+	 * Uploads a video to 9GAG. The video must be a Youtube video for the upload to
+	 * be successful!
+	 * 
+	 * @param url     the Youtube video url
+	 * @param title   the title/caption of the post
+	 * @param section the section where you want to upload the video to
+	 * @param isNSFW  whether if it is "not safe for work" or not
+	 * @param tags    the tags of this post. Only a maximum of 3 Tags are supported!
+	 * @return the newly created {@link Post}
+	 * @throws GagApiException
+	 */
+	public Post uploadYoutubeVideo(String url, String title, PostSection section, boolean isNSFW, String... tags)
+			throws GagApiException
+	{
+		String tagList = "";
+		if (tags != null)
+			tagList = createTagList(tags);
+
+		String timestamp = String.valueOf(cl.getTimeInMillis() / 1000l);
+
+		String uploadId = getLoggedInUser().getAccountId() + "_" + timestamp;
+
+		HttpEntity metaEntity = MultipartEntityBuilder.create().addTextBody("isNSFW", String.valueOf(isNSFW))
+				.addTextBody("step", APIstep.META_DATA.getStep())
+				.addTextBody("section", section.getName().toLowerCase()).addTextBody("title", title)
+				.addTextBody("tags", tagList).addTextBody("uploadId", uploadId).build();
+
+		HttpEntity mpEntity = MultipartEntityBuilder.create().addTextBody("urlMedia", url)
+				.addTextBody("step", APIstep.URL_DATA.getStep()).addTextBody("uploadId", uploadId).build();
+
+		HttpEntity triggerEntity = MultipartEntityBuilder.create()
+				.addTextBody("step", APIstep.TRIGGER_CREATION.getStep()).addTextBody("uploadId", uploadId).build();
+
+		JsonObject response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, mpEntity);
+		System.out.println(response);
+		if (validateResponse(response))
+		{
+
+			response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, metaEntity);
+
+			System.out.println(response);
+			if (validateResponse(response))
+			{
+				response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, triggerEntity);
+				System.out.println(response);
+				String entryId = validateURLUploadAndGetPostId(response);
+				System.out.println(entryId);
+				return getPostById(entryId);
+
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -402,6 +516,29 @@ public class JGag
 			throw new GagApiResponseException(errorCode, errorMessage);
 		}
 		return true;
+	}
+
+	private String validateURLUploadAndGetPostId(JsonObject obj)
+	{
+		if (validateResponse(obj))
+		{
+			JsonObject data = obj.getJsonObject("data");
+			String entryId = null;
+			try
+			{
+				entryId = data.getString("entryId");
+
+			} catch (Exception e)
+			{
+				System.err.println("EntryId null!");
+			}
+			if (entryId != null)
+			{
+				return entryId;
+			}
+
+		}
+		return "null";
 	}
 
 	private String validateUploadAndGetPostId(JsonObject obj) throws GagApiException

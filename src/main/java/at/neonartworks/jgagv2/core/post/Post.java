@@ -186,7 +186,8 @@ public class Post
 			String accountId = user.getString("accountId");
 			String hashedAccountId = user.getString("hashedAccountId");
 
-			CommentAuthor u = new CommentAuthor(userID, avatarUrl, displayName, emojiStatus, accountId, hashedAccountId);
+			CommentAuthor u = new CommentAuthor(userID, avatarUrl, displayName, emojiStatus, accountId,
+					hashedAccountId);
 			top_comment.add(new Comment(commentID, text, parentID, permalink, likeCount, dislikeCount, coinCount, isURL,
 					childrenCount, u, cmt));
 
@@ -217,7 +218,7 @@ public class Post
 				+ albumWebUrl + ", score=" + score + ", viewsCount=" + viewsCount + ", version=" + version + ", nsfw="
 				+ nsfw + ", upvotes=" + upvotes + ", downvotes=" + downvotes + ", totalVotes=" + totalVotes
 				+ ", promotedPost=" + promotedPost + ", commentsCount=" + commentsCount + ", orderID=" + orderID
-				+ ", section=" + section + ", api=" + api + ", tags=" + tags + ", comments=" + comments + "]";
+				+ ", section=" + section + ", tags=" + tags + ", comments=" + comments + "]";
 	}
 
 	/**
