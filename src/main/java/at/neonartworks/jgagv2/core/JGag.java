@@ -159,11 +159,14 @@ public class JGag
 
 		JsonObject response = makeRequest(RESTType.GET, APIpath.USER_TOKEN, APIservice.API, arg, null, null);
 		// System.out.println(response);
-		this.loggedInUser = getUserfromLoginResponse(response.getJsonObject("data").getJsonObject("user"));
 
 		boolean succ = validateResponse(response);
 		if (succ)
+		{
 			this.token = response.getJsonObject("data").getString("userToken");
+			this.loggedInUser = getUserfromLoginResponse(response.getJsonObject("data").getJsonObject("user"));
+
+		}
 		if (!succ)
 		{
 			System.err.println("Error while login-attempt! Are your credentials correct?");
@@ -420,10 +423,12 @@ public class JGag
 	}
 
 	/**
-	 * Uploads a video to 9GAG. The video must be a Youtube video for the upload to
-	 * be successful!
+	 * This method can be used to upload images and videos to 9GAG. So far it is
+	 * possible to upload Youtube videos as well as Instagram images and videos. I
+	 * guess that is a thing now. Maybe even other website urls work, I have not
+	 * tested this yet!
 	 * 
-	 * @param url     the Youtube video url
+	 * @param url     the Youtube video, Instagram video/image url
 	 * @param title   the title/caption of the post
 	 * @param section the section where you want to upload the video to
 	 * @param isNSFW  whether if it is "not safe for work" or not
@@ -431,7 +436,7 @@ public class JGag
 	 * @return the newly created {@link Post}
 	 * @throws GagApiException
 	 */
-	public Post uploadYoutubeVideo(String url, String title, PostSection section, boolean isNSFW, String... tags)
+	public Post uploadURL(String url, String title, PostSection section, boolean isNSFW, String... tags)
 			throws GagApiException
 	{
 		String tagList = "";
@@ -454,19 +459,19 @@ public class JGag
 				.addTextBody("step", APIstep.TRIGGER_CREATION.getStep()).addTextBody("uploadId", uploadId).build();
 
 		JsonObject response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, mpEntity);
-		System.out.println(response);
+		// System.out.println(response);
 		if (validateResponse(response))
 		{
 
 			response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, metaEntity);
 
-			System.out.println(response);
+			// System.out.println(response);
 			if (validateResponse(response))
 			{
 				response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, triggerEntity);
-				System.out.println(response);
+				// System.out.println(response);
 				String entryId = validateURLUploadAndGetPostId(response);
-				System.out.println(entryId);
+				// System.out.println(entryId);
 				return getPostById(entryId);
 
 			}
@@ -759,15 +764,16 @@ public class JGag
 	}
 
 	/**
-	 * Originally an internal method used to make direct queries/requests to the
-	 * 9gag servers.
+	 * Internal method. Which is public. Hurray. <br>
+	 * Basically this method is used to send all requests.
 	 * 
-	 * @param method  the method of the request (GET or POST)
-	 * @param path    the "path"-> API location
-	 * @param service api service of 9gag
-	 * @param args    arguments to send with the query
-	 * @param params  parameters to send with the query
-	 * @return returns an {@link JsonObject} containing the response
+	 * @param method  the method GET/POST
+	 * @param path    APIpath basically is url path for the thing you want to do
+	 * @param service normally you would only want to use API
+	 * @param args    arguments for GET/POST requests
+	 * @param params  params for POST/GET requests
+	 * @param ent     Entity for POST Body
+	 * @return {@link JsonObject} the response
 	 */
 	public JsonObject makeRequest(RESTType method, APIpath path, APIservice service,
 			List<Argument<String, String>> args, List<Argument<String, String>> params, HttpEntity ent)
@@ -786,6 +792,7 @@ public class JGag
 		hheaders.add(new BasicHeader(HeaderType.GAG_DEVICE_TYPE.getHeader(), DeviceType.ANDROID.GetDevice()));
 		hheaders.add(new BasicHeader(HeaderType.GAG_BUCKET_NAME.getHeader(), "MAIN_RELEASE"));
 
+		// Signing of the header
 		hheaders.add(new BasicHeader(HeaderType.GAG_REQUEST_SIGNATURE.getHeader(),
 				JGagUtil.sign(timestamp, this.app_id, this.device_uuid)));
 
@@ -812,7 +819,6 @@ public class JGag
 					post.setURI(builder.build());
 			} catch (URISyntaxException e)
 			{
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -835,11 +841,9 @@ public class JGag
 				response = client.execute(post);
 		} catch (ClientProtocolException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -849,11 +853,9 @@ public class JGag
 			jsonReader = Json.createReader(response.getEntity().getContent());
 		} catch (UnsupportedOperationException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		JsonObject object = jsonReader.readObject();
