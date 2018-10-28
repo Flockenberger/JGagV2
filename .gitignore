@@ -1,9 +1,7 @@
 
 .classpath
 .project
-.settings/org.eclipse.jdt.core.prefs
-.settings/org.eclipse.m2e.core.prefs
+.settings
+target
 src/test/
-target/test-classes/test/JGagTest.class
-target/test-classes/test/JGagTest.class
 src/test/java/test/JGagTest.java
