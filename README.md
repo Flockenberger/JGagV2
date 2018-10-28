@@ -9,9 +9,13 @@ This Java library is a port and extension of [this](https://github.com/and3rson/
  ## Features
  ► Retrieve posts from every section.
  
- ► Uploading images and youtube videos to 9gag.
+ ► Upload images to 9GAG.
  
- ► Search for posts.
+ ► Upload youtube videos to 9GAG.
+ 
+ ► Upload instagram videos and images to 9GAG. (yes, apparently that is a thing now. atleast it works)
+ 
+ ► Search for posts and specific tags.
  
   
 ## Currently Working On
