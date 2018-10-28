@@ -9,47 +9,51 @@ This Java library is a port and extension of [this](https://github.com/and3rson/
  ## Features
  ► Retrieve posts from every section.
  
- ► It is possible to get posts from HOT, TRENDING and FRESH.
+ ► Uploading posts to 9gag.
  
  ► Search for posts.
  
- ► Posts have all comments.
- 
+  
 ## Currently Working On
- ► Uploading posts to 9gag.
  
- ► Writing comments.
+ ► Writing comments to 9gag posts
 
 ## Getting Started
+### Loggin into 9GAG
 
 ```java
-public static void main(String[] args)
-{
-	JGag jgag = new JGag(); //create a new JGag instance
-
-	//login to 9GAG with your credentials
-	boolean login = jgag.login("USERNAME", "USER_TOKEN");
-
-	if (login)
-	{
-		//grab Posts
-		List<Post> posts = jgag.getPosts(PostGroup.FUNNY, PostFrom.TRENDING, 10);
-		
-		//of search for tags/strings
-		SearchResult result = jgag.searchPosts("Gandalf", 10, SortBy.ASCENDING);
-		//a SearchResult has all found Posts, and related Tags for the search
-		
-		//getPosts returns an empty List if no posts where found or null if an error occurred!
-		if (posts != null && posts.size() >= 1)
-		{
-			for (Post p : posts)
-			{
-				System.out.println(p.toString());
-			}
-		}
-	}
-}
+  JGag jgag = new JGag(); //create a new JGag instance
+  boolean login = jgag.login("USERNAME", "USER_TOKEN");
 ```
+
+### Getting Posts from section
+```java
+  if(login)
+  {
+    List<Post> posts = jgag.getPosts(PostSection.DARKHUMOR, PostFrom.HOT, 10);
+    if (posts != null && posts.size() > 1)
+    {
+      for (Post post : posts)
+      System.out.println(post.toString());
+    }
+  }
+```
+### Uploading a Post
+```java
+  if(login)
+  {
+    File file = new File("PATH-TO-JPG");		
+    try
+    {
+      Post p = jgag.uploadImage(file, 0.5f, "Caption This!", PostSection.FUNNY, false, "tag1", "tag2", "tag3");
+      System.out.println(p.toString());
+    } catch (GagApiException e)
+    {
+      e.printStackTrace();
+    }
+  }
+```
+
 # Sharing Is Caring!
 For more info on the headers and how the signing is made take a look at [this](https://github.com/and3rson/nineapi)  python client library by [and3rson](https://github.com/and3rson)
 This is the information I gathered so far for the API itself.
