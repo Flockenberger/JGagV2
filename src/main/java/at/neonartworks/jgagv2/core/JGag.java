@@ -345,6 +345,7 @@ public class JGag
 		JsonObject response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, mpEntity);
 		if (validateImageUpload(response))
 		{
+
 			response = makeRequest(RESTType.POST, APIpath.POST_SUBMIT, APIservice.API, null, null, metaEntity);
 			if (validateMetaUpload(response))
 			{
@@ -405,53 +406,53 @@ public class JGag
 
 	private String validateUploadAndGetPostId(JsonObject obj) throws GagApiException
 	{
-		if (isMetaStatusOK(obj))
-		{
-			JsonObject data = obj.getJsonObject("data");
-			if (validateMetaUpload(obj))
-			{
-				String entryId = null;
-				try
-				{
-					entryId = data.getString("entryId");
+		isMetaStatusOK(obj);
 
-				} catch (Exception e)
-				{
-					System.err.println("EntryId null!");
-				}
-				if (entryId != null)
-				{
-					return entryId;
-				}
+		JsonObject data = obj.getJsonObject("data");
+		if (validateMetaUpload(obj))
+		{
+			String entryId = null;
+			try
+			{
+				entryId = data.getString("entryId");
+
+			} catch (Exception e)
+			{
+				System.err.println("EntryId null!");
 			}
+			if (entryId != null)
+			{
+				return entryId;
+			}
+
 		}
 		return "null";
 	}
 
 	private boolean validateImageUpload(JsonObject obj) throws GagApiException
 	{
-		if (isMetaStatusOK(obj))
-		{
-			JsonObject data = obj.getJsonObject("data");
-			int _imageStatus = data.getInt("imageStatus");
-			int _mediaStatus = data.getInt("mediaStatus");
-			if (_imageStatus == 1 && _mediaStatus == 1)
-				return true;
-		}
+		isMetaStatusOK(obj);
+
+		JsonObject data = obj.getJsonObject("data");
+		int _imageStatus = data.getInt("imageStatus");
+		int _mediaStatus = data.getInt("mediaStatus");
+		if (_imageStatus == 1 && _mediaStatus == 1)
+			return true;
+
 		return false;
 	}
 
 	private boolean validateMetaUpload(JsonObject obj) throws GagApiException
 	{
-		if (isMetaStatusOK(obj))
+		isMetaStatusOK(obj);
+
+		JsonObject data = obj.getJsonObject("data");
+		if (validateImageUpload(obj))
 		{
-			JsonObject data = obj.getJsonObject("data");
-			if (validateImageUpload(obj))
-			{
-				int _metaStatus = data.getInt("metaStatus");
-				if (_metaStatus == 1)
-					return true;
-			}
+			int _metaStatus = data.getInt("metaStatus");
+			if (_metaStatus == 1)
+				return true;
+
 		}
 		return false;
 	}
