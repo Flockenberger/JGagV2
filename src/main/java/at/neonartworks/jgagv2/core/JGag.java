@@ -60,38 +60,70 @@ import at.neonartworks.jgagv2.util.RESTType;
 import at.neonartworks.jgagv2.util.SortBy;
 
 /**
- * JGAG.
+ * <h1>JGAG V2</h1>
+ * <p>
+ * This project is an unofficial Java wrapper of 9Gags internal API.
+ * </p>
+ * <h2>Features</h2>
+ * <p>
+ * ► Retrieve posts from every section. ► Uploading posts to 9gag. ► Search for
+ * posts.
+ * </p>
+ * <h2>Currently Working On</h2>
+ * <p>
+ * ► Writing comments to 9gag posts ► Uploading Youtube videos
+ * </p>
+ * <h2>Getting Started</h2>
+ * <h3>Loggin into 9GAG</h3>
+ * <p>
  * 
- * This class is the base of the Java library.
+ * <pre>
+ * {
+ * 	&#64;code
+ * 	JGag jgag = new JGag();
+ * 	boolean login = jgag.login("USERNAME", "USER_TOKEN");
+ * }
+ * </pre>
+ * </p>
+ * <h3>Getting Posts from section</h3>
+ * 
+ * <pre>
+ * &#64;code
+ * if(login) 
+ * { 
+ * 	List<Post> posts = jgag.getPosts(PostSection.DARKHUMOR, PostFrom.HOT, 10); 
+ * 	if (posts != null && posts.size() > 1) 
+ * 	{ 
+ * 		for (Post post : posts)
+ * 		System.out.println(post.toString()); 
+ * 	} 
+ * }
+ * 
+ * </pre>
+ * 
+ * <h3>Uploading a Post</h3>
+ * 
+ * <pre>
+ * &#64;code
+ * if(login) 
+ * { 
+ * 	File file = new File("PATH-TO-JPG"); 
+ * 	try { 
+ * 		Post p = jgag.uploadImage(file, 0.5f, "Caption This!", PostSection.FUNNY, false, "tag1", "tag2", "tag3");
+ * 		System.out.println(p.toString()); 
+ * 	} catch (GagApiException e) {
+ * 		e.printStackTrace(); 
+ * 	} 
+ * }
+ * 
+ * </pre>
  * 
  * @author Florian Wagner
  *
  */
 public class JGag
 {
-	/**
-	 * ApiService Requests... POST post-submit/step/articleData
-	 * post-submit/step/createMedia ->uploadID RequestBody, MultipartBody
-	 * post-submit/step/createMedia ->uploadID RequestBody, urlMedia RequestBody
-	 * 
-	 * GET group-list ->entryTypes String, locale String,
-	 * user-notifications/locale/{locale} ->locale String, refKey String
-	 * post-list/group/{group}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}/olderThan/{olderThan}
-	 * post-list/group/{group}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}
-	 * post -> entryIds String entryTypes String
-	 * search/query/{query}/fromIndex/{fromIndex}/itemCount/{itemCount}/entryTypes/{entryTypes}/sortBy/{sortBy}
-	 * tag-search->query String, fromIndex String, itemCount String, entryTypes
-	 * String, sortBy String
-	 * post-list/userId/{userId}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}
-	 * post-list/userId/{userId}/type/{type}/itemCount/{itemCount}/entryTypes/{entryTypes}/olderThan/{olderThan}
-	 * tags ->type String url-info ->urls String user-info
-	 * 
-	 * // posting stuff to 9gag research // post_tags // upload_type 2 = gif, 5
-	 * =mp4, else jpg! // source // upload_id // progress // section // submit_ts
-	 * System.currentTimeMillis() // title // public static final int IMAGE_TYPE_GIF
-	 * = 2; // public static final int IMAGE_TYPE_JPG = 1; // public static final
-	 * int IMAGE_TYPE_MP4 = 5; // public static final int IMAGE_TYPE_RAW = 4;
-	 */
+
 	private String app_id;
 	private String token;
 	private String device_uuid;
@@ -656,7 +688,7 @@ public class JGag
 
 		}
 		client = HttpClientBuilder.create().build();
-		//System.out.println(post.getRequestLine());
+		// System.out.println(post.getRequestLine());
 		try
 		{
 			if (method.equals(RESTType.GET))
@@ -703,6 +735,11 @@ public class JGag
 		return url;
 	}
 
+	/**
+	 * Returns the currently logged in user.
+	 * 
+	 * @return the user which is currently logged in with JGag
+	 */
 	public LoggedInUser getLoggedInUser()
 	{
 		return loggedInUser;
